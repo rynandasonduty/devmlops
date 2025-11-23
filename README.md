@@ -11,18 +11,18 @@
 Sistem ini adalah implementasi **DevMLOps (Development + ML + Operations)** untuk melakukan analisis klastering kesiapan pendidikan provinsi di Indonesia. Proyek ini tidak hanya fokus pada pemodelan Machine Learning, tetapi juga pada pembangunan infrastruktur otomatis yang tangguh, *reproducible*, dan siap produksi.
 
 ### 🎯 Tujuan
-* **Data Versioning:** Melacak perubahan dataset dinamis dari PostgreSQL.
-* **Automated Pipeline:** Mengotomatisasi proses ETL dan Training model.
-* **Experiment Tracking:** Mencatat metrik performa model (Silhouette Score) secara terpusat.
-* **Model Serving:** Menyediakan API prediksi real-time yang dapat diakses publik.
-* **Monitoring:** Memantau kesehatan sistem (Latency) dan kualitas data (Data Drift).
+* **Data Versioning:** Melacak perubahan dataset dinamis dari PostgreSQL menggunakan **DVC**.
+* **Automated Pipeline:** Mengotomatisasi proses ETL dan Training model dengan **Mage.ai**.
+* **Experiment Tracking:** Mencatat metrik performa model (Silhouette Score) dan artefak secara terpusat dengan **MLflow**.
+* **Model Serving:** Menyediakan API prediksi real-time yang cepat dan standar menggunakan **FastAPI**.
+* **Monitoring:** Memantau kesehatan sistem (Latency/Throughput) dengan **Prometheus & Grafana** serta kualitas data (Data Drift) menggunakan **Evidently AI**.
 
 ---
 
 ## 🏗️ Architecture Design
 Sistem dibangun menggunakan pendekatan *Microservices* dengan empat pilar utama:
 
-1.  **Data Plane:** PostgreSQL (Source) + DVC (Versioning).
+1.  **Data Plane:** PostgreSQL (Source of Truth) + DVC (Versioning).
 2.  **Experimentation Plane:** Mage.ai (Orchestrator) + MLflow (Tracking).
 3.  **Serving Plane:** FastAPI (Backend) + Streamlit (Frontend).
 4.  **DevOps Plane:** GitHub Actions (CI/CD) + Prometheus & Grafana (Monitoring).
@@ -33,17 +33,19 @@ Sistem dibangun menggunakan pendekatan *Microservices* dengan empat pilar utama:
 
 ## 🛠️ Tech Stack
 
-| Komponen | Teknologi | Fungsi Utama |
+| Kategori | Teknologi | Fungsi Utama |
 | :--- | :--- | :--- |
-| **Database** | PostgreSQL 15 | Single Source of Truth data pendidikan. |
-| **Orchestrator** | Mage.ai | Mengatur jadwal pipeline ETL & Training. |
-| **ML Core** | Scikit-Learn | Algoritma K-Means Clustering. |
-| **Tracking** | MLflow | Manajemen eksperimen & Model Registry. |
-| **Versioning** | DVC | Pelacakan versi dataset (Snapshot). |
-| **Backend** | FastAPI | REST API untuk melayani prediksi (`/predict`). |
-| **Frontend** | Streamlit | Dashboard interaktif untuk pengguna. |
-| **Monitoring** | Prometheus + Grafana | Monitoring kesehatan server & API. |
-| **Quality** | Ruff, Black, Prettier | Standarisasi kode Python & Config. |
+| **Database** | **PostgreSQL 15** | Single Source of Truth penyimpanan data pendidikan. |
+| **Orchestrator** | **Mage.ai** | Mengatur jadwal pipeline: Extract (SQL) -> Transform (Python) -> Train. |
+| **ML Core** | **Scikit-Learn** | Library utama algoritma K-Means Clustering. |
+| **Tracking** | **MLflow** | Manajemen eksperimen, pencatatan metrik, dan Model Registry. |
+| **Versioning** | **DVC** | Pelacakan versi dataset besar (Snapshotting) yang terintegrasi dengan Git. |
+| **Backend** | **FastAPI** | REST API asynchronous untuk melayani prediksi (`/predict`). |
+| **Frontend** | **Streamlit** | Dashboard interaktif untuk visualisasi klaster bagi pengguna. |
+| **Monitoring (Sys)** | **Prometheus + Grafana** | Monitoring kesehatan server, latency API, dan penggunaan resource. |
+| **Monitoring (ML)** | **Evidently AI** | Deteksi otomatis Data Drift dan degradasi model. |
+| **Quality** | **Ruff, Black, Prettier** | Standardisasi kode Python dan konfigurasi (Linting & Formatting). |
+| **Infra** | **Docker** | Kontainerisasi seluruh layanan agar konsisten di semua environment. |
 
 ---
 
@@ -52,8 +54,9 @@ Sistem dibangun menggunakan pendekatan *Microservices* dengan empat pilar utama:
 Ikuti langkah ini untuk menjalankan sistem secara lokal menggunakan Docker.
 
 ### Prerequisites
-* Docker & Docker Compose
+* Docker Desktop & Docker Compose
 * Git
+* Python 3.9+ (Optional, untuk dev tools lokal)
 
 ### Installation
 1.  **Clone Repository**
@@ -63,38 +66,61 @@ Ikuti langkah ini untuk menjalankan sistem secara lokal menggunakan Docker.
     ```
 
 2.  **Setup Environment Variables**
-    Salin contoh konfigurasi env (jika ada) atau pastikan file `.env` telah dibuat dengan kredensial database:
-    ```bash
-    # Contoh isi .env
+    Buat file `.env` di root folder dan isi dengan kredensial database (pastikan sesuai dengan `docker-compose.yml`):
+    ```env
+    # Database Credentials
     POSTGRES_USER=admin
     POSTGRES_PASSWORD=adminpassword123
     POSTGRES_DB=education_db
+
+    # (Optional) AWS Credentials for DVC Remote
+    AWS_ACCESS_KEY_ID=
+    AWS_SECRET_ACCESS_KEY=
+    AWS_REGION=ap-southeast-1
     ```
 
 3.  **Build & Run Services**
-    Jalankan perintah sakti berikut untuk menyalakan seluruh infrastruktur:
+    Jalankan perintah sakti berikut untuk membangun dan menyalakan seluruh infrastruktur:
     ```bash
     docker-compose up -d --build
     ```
-    *(Proses ini akan memakan waktu 5-10 menit untuk download image & install library)*
+    *(Proses ini akan memakan waktu 5-15 menit untuk download image & install library)*
 
 4.  **Access Applications**
     Setelah sukses berjalan, akses layanan di browser:
     * **Mage.ai (Pipeline):** [http://localhost:6789](http://localhost:6789)
     * **MLflow (Tracking):** [http://localhost:5000](http://localhost:5000)
     * **Streamlit (Dashboard):** [http://localhost:8501](http://localhost:8501)
-    * **FastAPI (Docs):** [http://localhost:8000/docs](http://localhost:8000/docs)
-    * **Grafana (Monitoring):** [http://localhost:3000](http://localhost:3000)
+    * **FastAPI (Swagger Docs):** [http://localhost:8000/docs](http://localhost:8000/docs)
+    * **Grafana (Monitoring):** [http://localhost:3000](http://localhost:3000) (Login: admin/admin)
+    * **Prometheus (Metrics):** [http://localhost:9090](http://localhost:9090)
 
 ---
 
 ## 🔄 Development Workflow (CI/CD)
 
-Proyek ini menerapkan **Continuous Integration** menggunakan GitHub Actions.
-* Setiap `git push` akan memicu pengecekan kualitas kode (**Ruff**) dan formatting (**Black**).
-* Pastikan kode Anda lolos pengecekan sebelum merge ke branch `main`.
+Proyek ini menerapkan **Continuous Integration** menggunakan GitHub Actions untuk menjamin kualitas kode.
 
-```bash
-# Cara manual cek kualitas kode di lokal
-ruff check .
-black .
+### Local Development
+Sebelum melakukan commit, pastikan kode Anda bersih dan standar:
+
+1.  **Linting (Mencari Bug):**
+    ```bash
+    ruff check .
+    ```
+2.  **Formatting (Merapikan Kode):**
+    ```bash
+    black .
+    ```
+
+### CI Pipeline
+Setiap `git push` ke branch `main` akan memicu pipeline otomatis yang melakukan:
+1.  Pengecekan kualitas kode (Linting).
+2.  Unit Testing dengan `pytest`.
+3.  Build test Docker image.
+
+---
+
+## 👨‍💻 Author
+**A.R Agastya**
+*Sistem Informasi - ITS*
