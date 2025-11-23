@@ -41,43 +41,97 @@ Sistem dibangun di atas **4 Pilar Arsitektur** yang saling menopang:
 
 ```mermaid
 graph TB
-    subgraph "Data & Orchestration Plane"
-        PG[("PostgreSQL<br/>Single Source of Truth")]
-        MAGE["Mage.ai<br/>ETL & Orchestration"]
+    subgraph Data["🗄️ DATA & ORCHESTRATION"]
+        PostgreSQL[("PostgreSQL 15")]
+        Mage["🔄 Mage.ai<br/>ETL Pipeline"]
     end
 
-    subgraph "Experimentation & Versioning Plane"
-        DVC["DVC<br/>Data Version Control"]
-        MLFLOW["MLflow<br/>Experiment Tracking"]
+    subgraph Experiment["📝 EXPERIMENTATION & VERSIONING"]
+        DVC["📦 DVC<br/>Data Version Control"]
+        MLflow["📊 MLflow<br/>Experiment Tracking"]
+        RemoteStorage[("☁️ Remote Storage<br/>AWS S3")]
     end
 
-    subgraph "Serving & Application Plane"
-        FASTAPI["FastAPI<br/>Prediction Service"]
-        STREAMLIT["Streamlit<br/>Interactive Dashboard"]
+    subgraph Training["🧠 MACHINE LEARNING"]
+        ScikitLearn["🔬 Scikit-Learn<br/>K-Means"]
+        Pipeline["⚙️ Training Pipeline<br/>K=2,3,4,5,6"]
+        Visualization["📈 Matplotlib<br/>Elbow Method"]
     end
 
-    subgraph "DevOps & Monitoring Plane"
-        GHA["GitHub Actions<br/>CI/CD Pipeline"]
-        PROM["Prometheus<br/>Metrics Collection"]
-        GRAFANA["Grafana<br/>Visualization"]
-        EVIDENTLY["Evidently AI<br/>Data Drift Detection"]
+    subgraph Serving["🚀 SERVING & APPLICATION"]
+        FastAPI["⚡ FastAPI<br/>REST API"]
+        Streamlit["🎨 Streamlit<br/>Dashboard"]
     end
 
-    subgraph "Infrastructure"
-        AWS["AWS EC2 + S3"]
-        DOCKER["Docker & Docker Compose"]
+    subgraph CI["🔄 CI/CD AUTOMATION"]
+        Git["📌 Git<br/>Local VCS"]
+        GitHub["🌐 GitHub<br/>Remote Repo"]
+        Actions["🤖 GitHub Actions<br/>CI/CD Pipeline"]
     end
 
-    PG -->|Extract| MAGE
-    MAGE -->|Snapshot| DVC
-    MAGE -->|Train & Track| MLFLOW
-    MLFLOW -->|Load Model| FASTAPI
-    FASTAPI -->|Serve| STREAMLIT
-    GHA -->|Deploy| DOCKER
-    DOCKER -->|Run on| AWS
-    PROM -->|Scrape| FASTAPI
-    PROM -->|Display| GRAFANA
-    EVIDENTLY -->|Monitor| PROM
+    subgraph Infrastructure["🏗️ INFRASTRUCTURE"]
+        Docker["📦 Docker<br/>Container"]
+        Compose["🎭 Docker Compose<br/>Orchestrator"]
+        EC2["💻 AWS EC2<br/>Server"]
+    end
+
+    subgraph Monitoring["👁️ MONITORING & ALERTS"]
+        Prometheus["📊 Prometheus<br/>Metrics"]
+        Grafana["📉 Grafana<br/>Dashboard"]
+        Evidently["⚠️ Evidently AI<br/>Drift Detection"]
+    end
+
+    %% DATA EXTRACTION & LOADING
+    PostgreSQL -->|📤 Extract| Mage
+    Mage -->|🔄 Transform & Load| Pipeline
+    
+    %% VERSIONING FLOW
+    Pipeline -->|💾 Snapshot| DVC
+    DVC -->|📤 Upload| RemoteStorage
+    
+    %% TRAINING & TRACKING
+    Pipeline -->|🔬 Train Models| ScikitLearn
+    ScikitLearn -->|📊 Generate| Visualization
+    Pipeline -->|📝 Log Metrics| MLflow
+    Visualization -->|📸 Store| MLflow
+    
+    %% MODEL SERVING
+    MLflow -->|🏆 Champion Model| FastAPI
+    FastAPI -->|📡 API Endpoint| Streamlit
+    
+    %% CI/CD PIPELINE
+    Git -->|💾 Commit| GitHub
+    GitHub -->|🔔 Trigger| Actions
+    Actions -->|✅ Test & Build| Docker
+    Docker -->|🔗 Compose| Compose
+    
+    %% DEPLOYMENT
+    Compose -->|🚀 Deploy| EC2
+    EC2 -->|🏃 Run| FastAPI
+    EC2 -->|🏃 Run| Mage
+    
+    %% MONITORING FEEDBACK
+    FastAPI -->|📊 Send Metrics| Prometheus
+    PostgreSQL -->|📋 Sample Data| Evidently
+    Evidently -->|⚠️ Detect Drift| Prometheus
+    Prometheus -->|📊 Visualize| Grafana
+    Grafana -->|🔔 Alert| Mage
+    Mage -->|🔄 Retrain| Pipeline
+    
+    %% SECURITY
+    Actions -->|🔐 SSH Keys| EC2
+    
+    %% Minimalist Styling
+    classDef minimal fill:#f5f5f5,stroke:#333,stroke-width:1px,color:#000
+    classDef header fill:#e8e8e8,stroke:#333,stroke-width:2px,color:#000
+    classDef process fill:#fafafa,stroke:#666,stroke-width:1px,color:#000
+    classDef data fill:#f0f0f0,stroke:#555,stroke-width:1px,color:#000
+    classDef highlight fill:#f9f9f9,stroke:#333,stroke-width:1.5px,color:#000
+    
+    class Data,Experiment,Training,Serving,CI,Infrastructure,Monitoring header
+    class PostgreSQL,RemoteStorage,EC2 data
+    class Pipeline,FastAPI,Mage,Grafana highlight
+    class DVC,MLflow,Docker,Compose,Actions,Git,GitHub,Prometheus,Evidently,ScikitLearn,Visualization,Streamlit minimal
 ```
 
 ### Alur Data Utama
