@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# MageAI
+mage_data/
+.mage_data/
+
+# DVC & Data
+/data/*
+!/data/*.dvc
+.dvc/cache/
+.dvc/tmp/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
