@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # =========================================
+  # 1. DATA PLANE (PostgreSQL)
+  # Sesuai Dokumen Poin 2.1: Single Source of Truth
+  # =========================================
+  postgres:
+    image: postgres:15
+    container_name: mlops-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mlops-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================================
+  # 2. ORCHESTRATION PLANE (Mage.ai)
+  # Sesuai Dokumen Poin 2.1: ETL & Training Trigger
+  # =========================================
+  mage:
+    image: mageai/mageai:latest
+    container_name: mlops-mage
+    ports:
+      - "6789:6789"
+    volumes:
+      - ./mage_pipeline:/home/src
+      - ./mage_data:/home/src/mage_data
+      - ./data:/home/src/data  # Mount folder data untuk DVC
+    environment:
+      POSTGRES_CONNECT_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      # Tambahkan AWS Credentials jika sudah ada (opsional dulu)
+      # AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      # AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+    command: mage start project_education
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    networks:
+      - mlops-net
+
+  # =========================================
+  # 3. EXPERIMENTATION PLANE (MLflow)
+  # Sesuai Dokumen Poin 2.2: Tracking & Registry
+  # =========================================
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.0
+    container_name: mlops-mlflow
+    ports:
+      - "5000:5000"
+    # Menyimpan metadata di SQLite lokal container (sederhana untuk MVP)
+    command: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0
+    networks:
+      - mlops-net
+
+  # =========================================
+  # 4. SERVING PLANE (FastAPI)
+  # Sesuai Dokumen Poin 2.3 & 4.3: Prediction Service
+  # =========================================
+  backend:
+    build: ./backend
+    container_name: mlops-backend
+    ports:
+      - "8000:8000"
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      POSTGRES_CONNECT_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      - mlflow
+      - postgres
+    networks:
+      - mlops-net
+
+  # =========================================
+  # 5. APPLICATION PLANE (Streamlit)
+  # Sesuai Dokumen Poin 2.3: User Interface
+  # =========================================
+  frontend:
+    build: ./frontend
+    container_name: mlops-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - mlops-net
+
+  # =========================================
+  # 6. MONITORING PLANE (Prometheus + Grafana)
+  # Sesuai Dokumen Poin 2.4 & 4.4: System Health
+  # =========================================
+  prometheus:
+    image: prom/prometheus
+    container_name: mlops-prometheus
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - mlops-net
+
+  grafana:
+    image: grafana/grafana
+    container_name: mlops-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - mlops-net
+
+volumes:
+  postgres_data:
+
+networks:
+  mlops-net:
+    driver: bridge

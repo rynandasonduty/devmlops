@@ -1,0 +1,14 @@
+mage-ai
+mlflow>=2.1.0
+psycopg2-binary
+scikit-learn
+pandas
+numpy
+scipy
+openpyxl
+boto3
+matplotlib
+seaborn
+evidently
+python-dotenv
+sqlalchemy
