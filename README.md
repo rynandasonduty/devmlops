@@ -25,14 +25,19 @@ Implementasi lengkap **End-to-End Machine Learning Operations (MLOps)** yang dig
 ## 🎯 Latar Belakang & Ruang Lingkup
 
 ### Tujuan Bisnis
-Memberikan wawasan berbasis data kepada pemangku kepentingan (pemerintah/dinas) mengenai klaster pendidikan provinsi.
+Kementerian Pendidikan/Dinas Pendidikan ingin meluncurkan kurikulum berbasis kecerdasan buatan (AI) secara nasional. Namun, implementasi seragam akan gagal karena perbedaan drastis pada infrastruktur (ketersediaan komputer & internet) dan SDM (guru tersertifikasi & literasi dasar) antar provinsi.
 
 ### Tujuan Teknis
 Membangun pipeline otomatis (CI/CD/CT) yang meminimalisir intervensi manual dan kesalahan manusia.
 
-### Karakteristik Data
-Data tabular dinamis (PostgreSQL) yang memerlukan pelacakan versi (Versioning).
+### Tujuan Model
+Mengidentifikasi kelompok-kelompok homogen (Klaster) provinsi berdasarkan indikator kesiapan. Hasilnya akan digunakan untuk:
 
+Klaster 0 (Tinggi): Provinsi yang siap menerapkan kurikulum AI penuh (misal: Jawa, Bali, Sumatera Utara).
+
+Klaster 1 (Menengah): Provinsi yang perlu dukungan fasilitas dasar dan pelatihan guru intensif.
+
+Klaster 2 (Rendah): Provinsi yang perlu fokus pada Literasi, Numerasi, dan pemenuhan sarana dasar (misal: Papua).
 ---
 
 ## 🏗️ Arsitektur Sistem Global
