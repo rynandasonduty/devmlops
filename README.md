@@ -432,6 +432,131 @@ graph LR
 
 ---
 
+# 📅 Master Timeline
+
+---
+
+## Minggu 1: Infrastruktur & Data Engineering Foundation
+
+### Hari 1-2: Environment Setup & Infrastruktur
+- [x] Finalisasi Desain Arsitektur & Dokumen Teknis
+- [ ] Instalasi Docker Desktop & Git
+- [ ] Setup Repository GitHub
+- [ ] Konfigurasi `docker-compose.yml` dan `Dockerfile`
+- [ ] Test Run: Semua service UP (Healthy)
+
+### Hari 3-4: Database & Data Ingestion
+- [ ] Inisialisasi Tabel PostgreSQL
+- [ ] Seed/Import data dummy atau data riil (Excel/CSV)
+- [ ] Konfigurasi Mage.ai: Buat Data Loader Block (SQL)
+- [ ] Test: Data berhasil di-load dari PostgreSQL ke Mage
+
+### Hari 5-7: Data Versioning & Preprocessing
+- [ ] Konfigurasi DVC: Init DVC di folder `data/`
+- [ ] Integrasi Mage + DVC untuk snapshot data otomatis
+- [ ] Buat Transformer Block: Cleaning, Handling Null, Scaling
+- [ ] Visualisasi EDA sederhana
+
+**🏁 Milestone 1:** Docker running, data mengalir dari Postgres → Mage → DVC terlacak
+
+---
+
+## Minggu 2: Model Development & MLOps
+
+### Hari 8-9: Model Training & Experiment Tracking
+- [ ] Buat Training Block: Implementasi K-Means (Scikit-Learn)
+- [ ] Integrasi MLflow: Logging parameter dan metrik (Silhouette, Inertia)
+- [ ] Simpan plot visualisasi sebagai artifact di MLflow
+
+### Hari 10-11: Hyperparameter Tuning & Model Registry
+- [ ] Looping eksperimen untuk mencari k terbaik (Elbow Method otomatis)
+- [ ] Registrasi model terbaik ke MLflow Model Registry
+- [ ] Label model sebagai "Production"
+
+### Hari 12-14: Backend API Development
+- [ ] Buat logika `prediction.py`: Load model dari MLflow dinamis
+- [ ] Buat endpoint `POST /predict` dengan validasi Pydantic
+- [ ] Setup FastAPI dengan CORS
+- [ ] Test API menggunakan Swagger UI & Postman
+
+**🏁 Milestone 2:** Model tersimpan di MLflow, API berjalan dan bisa menerima request prediksi
+
+---
+
+## Minggu 3: Frontend, Monitoring & Testing
+
+### Hari 15-16: Frontend Dashboard
+- [ ] Buat layout UI Streamlit (Sidebar, Main page)
+- [ ] Integrasi Form Input → Request ke FastAPI → Tampilkan Response
+- [ ] Visualisasi hasil klaster (Scatter Plot dengan Plotly)
+
+### Hari 17-18: System & ML Monitoring
+- [ ] Setup Prometheus untuk scrape FastAPI metrics
+- [ ] Konfigurasi Dashboard Grafana: RPS, Latency, Error Rate
+- [ ] Implementasi Evidently AI: Data Drift Detection
+- [ ] (Opsional) Tampilkan Drift Report di Streamlit
+
+### Hari 19-21: Code Quality & Testing
+- [ ] Setup `pre-commit` hooks (Ruff, Black)
+- [ ] Buat Unit Test dengan pytest:
+  - Test fungsi data cleaning
+  - Test API response validation
+  - Test model prediction output
+- [ ] Local test: Semua tes passing
+
+**🏁 Milestone 3:** Streamlit live, monitoring aktif, test coverage 70%+
+
+---
+
+## Minggu 4: CI/CD, Integration & Documentation
+
+### Hari 22-23: GitHub Actions & CI/CD Pipeline
+- [ ] Buat `.github/workflows/ci.yml`:
+  - Automated testing (pytest)
+  - Code quality checks (Ruff, Black)
+  - Build Docker image
+- [ ] Setup CD pipeline (optional): Deploy ke AWS EC2 atau Docker Hub
+- [ ] Test end-to-end: Push code → GitHub Actions running → Pass/Fail
+
+### Hari 24-25: Integration Testing & Full Cycle
+- [ ] Full Cycle Test:
+  - Update data DB
+  - Retrain model di Mage
+  - Push model baru ke MLflow
+  - API load model terbaru
+  - Streamlit tampilkan prediksi baru
+- [ ] Test monitoring: Periksa metrics di Grafana
+- [ ] Test drift detection: Inject anomali data → Alert terdeteksi
+
+### Hari 26-28: Dokumentasi & Demo Preparation
+- [ ] Update `README.md`:
+  - Setup instructions
+  - Architecture diagram
+  - Screenshots aplikasi
+  - Cara menjalankan (Docker, lokal, cloud)
+- [ ] Penulisan Laporan Bab Implementasi
+- [ ] Rekam Video Demo (demo aplikasi end-to-end)
+- [ ] Siapkan Slide Presentasi
+
+**🏁 Milestone 4 (Final):** Aplikasi production-ready, CI/CD berjalan, dokumentasi lengkap
+
+---
+
+## 📋 Checklist Deliverables
+
+- [ ] **Code Repository:** GitHub dengan struktur rapi dan commit history jelas
+- [ ] **Docker Environment:** Semua service berjalan dalam docker-compose
+- [ ] **Data Pipeline:** Data versioning dengan DVC, metadata terlacak
+- [ ] **Trained Model:** Model di MLflow Model Registry dengan performa tercatat
+- [ ] **Backend API:** FastAPI dengan endpoint `/predict` dan validasi
+- [ ] **Frontend App:** Streamlit dashboard dengan visualisasi interaktif
+- [ ] **Monitoring:** Grafana dashboard + Evidently drift detection
+- [ ] **CI/CD Pipeline:** GitHub Actions workflows terintegrasi
+- [ ] **Tests:** Unit tests dan integration tests passing
+- [ ] **Documentation:** README, laporan implementasi, video demo
+
+---
+
 ## 🤝 Berkontribusi
 
 Kami menerima kontribusi! Silakan buat Pull Request atau laporkan Issue untuk:
