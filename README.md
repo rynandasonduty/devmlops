@@ -34,10 +34,9 @@ Membangun pipeline otomatis (CI/CD/CT) yang meminimalisir intervensi manual dan 
 Mengidentifikasi kelompok-kelompok homogen (Klaster) provinsi berdasarkan indikator kesiapan. Hasilnya akan digunakan untuk:
 
 Klaster 0 (Tinggi): Provinsi yang siap menerapkan kurikulum AI penuh (misal: Jawa, Bali, Sumatera Utara).
-
 Klaster 1 (Menengah): Provinsi yang perlu dukungan fasilitas dasar dan pelatihan guru intensif.
-
 Klaster 2 (Rendah): Provinsi yang perlu fokus pada Literasi, Numerasi, dan pemenuhan sarana dasar (misal: Papua).
+
 ---
 
 ## 🏗️ Arsitektur Sistem Global
