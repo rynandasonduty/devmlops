@@ -12,3 +12,5 @@ seaborn
 evidently
 python-dotenv
 sqlalchemy
+dvc
+dvc-s3
