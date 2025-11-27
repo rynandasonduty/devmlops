@@ -1,0 +1,5 @@
+outs:
+- md5: 2adf4a9fe423fea93da7fdf8bbcef12a
+  size: 9286
+  hash: md5
+  path: data_kesiapan_pendidikan_final.csv
