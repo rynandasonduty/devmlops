@@ -68,13 +68,13 @@ blocks:
   language: python
   name: train_kmeans_clustering
   retry_config: null
-  status: failed
+  status: executed
   timeout: null
   type: data_exporter
   upstream_blocks:
   - transform_standardize
   uuid: train_kmeans_clustering
-- all_upstream_blocks_executed: false
+- all_upstream_blocks_executed: true
   color: null
   configuration: {}
   downstream_blocks: []
@@ -84,7 +84,7 @@ blocks:
   language: python
   name: generate_drift_report
   retry_config: null
-  status: failed
+  status: executed
   timeout: null
   type: data_exporter
   upstream_blocks:

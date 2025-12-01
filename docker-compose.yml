@@ -38,6 +38,7 @@ services:
       - ./mage_pipeline:/home/src
       - ./mage_data:/home/src/mage_data
       - ./data:/home/src/data  # Mount folder data untuk DVC
+      - ./mlruns:/mlruns  # <--- TAMBAHKAN BARIS INI (Shared Volume Artifacts)
     environment:
       POSTGRES_CONNECT_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       MLFLOW_TRACKING_URI: http://mlflow:5000

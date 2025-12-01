@@ -1,22 +1,6 @@
 if 'data_exporter' not in globals():
     from mage_ai.data_preparation.decorators import data_exporter
 
-# --- BAGIAN INI MEMAKSA INSTALL DI DALAM BLOK ---
-import subprocess
-import sys
-import importlib
-
-# Cek apakah library sudah ada, jika belum, install paksa
-packages = ['evidently', 'scikit-learn', 'pandas']
-for package in packages:
-    try:
-        importlib.import_module(package)
-    except ImportError:
-        print(f"📦 Library '{package}' tidak ditemukan. Menginstall...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        print(f"✅ '{package}' berhasil diinstall.")
-
-# --- BARU IMPORT SETELAH PASTI TERINSTALL ---
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset
 import pandas as pd
@@ -33,11 +17,13 @@ def export_data(df: pd.DataFrame, *args, **kwargs):
     current_data = df.iloc[split_index:]
     
     # Setup Folder Artifacts
+    # Menggunakan path absolut container Mage
     ARTIFACTS_DIR = '/home/src/artifacts'
     os.makedirs(ARTIFACTS_DIR, exist_ok=True)
     report_path = os.path.join(ARTIFACTS_DIR, 'data_drift_report.html')
     
     # Drop kolom ID agar tidak dihitung drift-nya
+    # Menyesuaikan dengan kolom yang ada di DataFrame Anda
     columns_to_drop = ['provinsi', 'cluster'] if 'cluster' in df.columns else ['provinsi']
     
     # Generate Report
@@ -45,6 +31,7 @@ def export_data(df: pd.DataFrame, *args, **kwargs):
         DataDriftPreset(), 
     ])
     
+    # Jalankan report dengan error ignoring untuk kolom yang mungkin tidak ada
     report.run(
         reference_data=reference_data.drop(columns=columns_to_drop, errors='ignore'), 
         current_data=current_data.drop(columns=columns_to_drop, errors='ignore')
