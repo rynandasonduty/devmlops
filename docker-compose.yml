@@ -29,7 +29,8 @@ services:
   # FIX LOGIN AKHIR: Menggunakan perintah startup dengan DISABLE_AUTH=1
   # =========================================
   mage:
-    image: mageai/mageai:latest
+    # image: mageai/mageai:latest
+    build: ./mage_pipeline
     container_name: mlops-mage
     ports:
       - "6789:6789"
@@ -54,11 +55,15 @@ services:
   # 3. EXPERIMENTATION PLANE (MLflow)
   # =========================================
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.10.0
+    image: ghcr.io/mlflow/mlflow:v2.14.0  # <--- WAJIB VERSI INI
     container_name: mlops-mlflow
     ports:
       - "5000:5000"
-    command: mlflow server --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0
+    # Perhatikan path sqlite:///mlflow/mlflow.db
+    command: mlflow server --backend-store-uri sqlite:///mlflow/mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0
+    volumes:
+      - ./mlruns:/mlruns
+      - ./mlflow_data:/mlflow
     networks:
       - mlops-net
 
@@ -70,6 +75,8 @@ services:
     container_name: mlops-backend
     ports:
       - "8000:8000"
+    volumes:
+      - ./mage_pipeline/artifacts:/app/artifacts
     environment:
       MLFLOW_TRACKING_URI: http://mlflow:5000
       POSTGRES_CONNECT_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -112,6 +119,8 @@ services:
     container_name: mlops-grafana
     ports:
       - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
     networks:
@@ -119,6 +128,7 @@ services:
 
 volumes:
   postgres_data:
+  grafana_data:                       # <--- TAMBAHAN BARU: Definisikan volume grafana
 
 networks:
   mlops-net:

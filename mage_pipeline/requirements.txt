@@ -1,15 +1,18 @@
-mage-ai
-mlflow>=2.1.0
+# Library Dasar Mage (Hapus mage-ai, pandas, numpy dari sini agar tidak konflik)
+
+# Library Tambahan Project Kita
+mlflow>=2.10.0
 psycopg2-binary
 scikit-learn
-pandas
-numpy
-scipy
 openpyxl
 boto3
 matplotlib
 seaborn
-evidently
+
+# Kunci versi Evidently & Pydantic agar stabil
+evidently>=0.4.15
+pydantic>=2.0.0
+
 python-dotenv
 sqlalchemy
 dvc

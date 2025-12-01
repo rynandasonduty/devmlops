@@ -1,10 +1,6 @@
 version: 0.1.1
 default:
   POSTGRES_CONNECT_STRING: ${POSTGRES_CONNECT_STRING}
-
-  # Default profile created for data IO access.
-  # Add your credentials for the source you use, and delete the rest.
-  # AWS
   AWS_ACCESS_KEY_ID: "{{ env_var('AWS_ACCESS_KEY_ID') }}"
   AWS_SECRET_ACCESS_KEY: "{{ env_var('AWS_SECRET_ACCESS_KEY') }}"
   AWS_SESSION_TOKEN: session_token (Used to generate Redshift credentials)
@@ -85,11 +81,11 @@ default:
   PINOT_USER: user
   # PostgresSQL
   POSTGRES_CONNECT_TIMEOUT: 10
-  POSTGRES_DBNAME: postgres
+  POSTGRES_DBNAME: fptml
   POSTGRES_SCHEMA: public # Optional
-  POSTGRES_USER: username
-  POSTGRES_PASSWORD: password
-  POSTGRES_HOST: hostname
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: yarji
+  POSTGRES_HOST: postgres
   POSTGRES_PORT: 5432
   # Qdrant
   QDRANT_COLLECTION: collection

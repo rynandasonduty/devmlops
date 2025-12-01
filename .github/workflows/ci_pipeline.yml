@@ -1,0 +1,37 @@
+name: MLOps CI Pipeline (Strict)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  quality-assurance:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"
+
+    - name: Install Tools
+      run: |
+        pip install ruff black pytest httpx python-dotenv
+
+    - name: 1. Code Formatting Check (Black)
+      # --check artinya hanya mengecek, tidak mengubah file
+      run: black . --check --verbose
+
+    - name: 2. Linter & Error Check (Ruff)
+      # Ruff jauh lebih cepat daripada Flake8
+      run: ruff check .
+
+    - name: 3. Backend Integration Test (Pytest)
+      run: |
+        # Install dependencies backend dulu
+        if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+        # Jalankan tes (pastikan ada folder tests/ atau buat dummy test)
+        # pytest
