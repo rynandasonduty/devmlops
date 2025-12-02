@@ -12,6 +12,7 @@ seaborn
 # Kunci versi Evidently & Pydantic agar stabil
 evidently==0.6.0
 pydantic==2.6.0
+prometheus-client
 
 python-dotenv
 sqlalchemy
