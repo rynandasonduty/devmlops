@@ -1,0 +1,21 @@
+# Abaikan folder artifacts dan log otomatis
+mlruns/
+mage_pipeline/artifacts/
+mage_pipeline/.dvc/
+.dvc/
+.git/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+node_modules/
+
+# Abaikan file data
+*.csv
+*.pkl
+*.parquet
+*.db
+
+# Abaikan file lock
+*.lock

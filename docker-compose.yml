@@ -1,4 +1,3 @@
-
 services:
   # =========================================
   # 1. DATA PLANE (PostgreSQL)
@@ -11,13 +10,13 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - mlops-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,7 +28,7 @@ services:
     build: ./mage_pipeline
     container_name: mlops-mage
     ports:
-      - "6789:6789"
+      - '6789:6789'
     volumes:
       - ./mage_pipeline:/home/src
       - ./mage_data:/home/src/mage_data
@@ -51,12 +50,12 @@ services:
   # 3. EXPERIMENTATION PLANE (MLflow)
   # =========================================
   mlflow:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: mlops-mlflow
     ports:
-      - "5000:5000"
+      - '5000:5000'
     command: mlflow server --backend-store-uri sqlite:////mlflow/mlflow.db --default-artifact-root /mlruns --host 0.0.0.0
     volumes:
       - ./mlruns:/mlruns
@@ -71,7 +70,7 @@ services:
     build: ./backend
     container_name: mlops-backend
     ports:
-      - "8000:8000"
+      - '8000:8000'
     volumes:
       - ./mage_pipeline/artifacts:/app/artifacts
     environment:
@@ -90,7 +89,7 @@ services:
     build: ./frontend
     container_name: mlops-frontend
     ports:
-      - "8501:8501"
+      - '8501:8501'
     environment:
       BACKEND_URL: http://backend:8000
     depends_on:
@@ -101,21 +100,21 @@ services:
   # =========================================
   # 6. MONITORING INFRASTRUCTURE (The Upgrades)
   # =========================================
-  
+
   # A. Prometheus (Metrics Collector)
   prometheus:
     image: prom/prometheus:latest
     container_name: mlops-prometheus
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml 
-      - prometheus_data:/prometheus 
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=15d' # Simpan data 15 hari
     ports:
-      - "9090:9090"
+      - '9090:9090'
     networks:
       - mlops-net
 
@@ -124,7 +123,7 @@ services:
     image: grafana/grafana:latest
     container_name: mlops-grafana
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       - grafana_data:/var/lib/grafana # PERSISTENSI DASHBOARD
     depends_on:
@@ -140,8 +139,8 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    command: 
-      - '--path.procfs=/host/proc' 
+    command:
+      - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
@@ -152,7 +151,7 @@ services:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: mlops-cadvisor
     ports:
-      - "8080:8080"
+      - '8080:8080'
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -167,16 +166,16 @@ services:
     image: prometheuscommunity/postgres-exporter
     container_name: mlops-postgres-exporter
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: 'postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable'
     networks:
       - mlops-net
-      
+
   # F. Alertmanager (Notification Handler)
   alertmanager:
     image: prom/alertmanager
     container_name: mlops-alertmanager
     ports:
-      - "9093:9093"
+      - '9093:9093'
     volumes:
       - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml
     command: --config.file=/etc/alertmanager/config.yml
@@ -185,8 +184,8 @@ services:
 
 volumes:
   postgres_data:
-  grafana_data:    
-  prometheus_data: 
+  grafana_data:
+  prometheus_data:
   mage_data:
 
 networks:
