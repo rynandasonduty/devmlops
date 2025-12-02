@@ -90,21 +90,6 @@ blocks:
   upstream_blocks:
   - train_kmeans_clustering
   uuid: generate_drift_report
-- all_upstream_blocks_executed: true
-  color: null
-  configuration: {}
-  downstream_blocks: []
-  executor_config: null
-  executor_type: local_python
-  has_callback: false
-  language: python
-  name: black shield
-  retry_config: null
-  status: updated
-  timeout: null
-  type: scratchpad
-  upstream_blocks: []
-  uuid: black_shield
 cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}

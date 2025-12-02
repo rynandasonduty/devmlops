@@ -25,12 +25,15 @@ Implementasi lengkap **End-to-End Machine Learning Operations (MLOps)** yang dig
 ## 🎯 Latar Belakang & Ruang Lingkup
 
 ### Tujuan Bisnis
+
 Kementerian Pendidikan/Dinas Pendidikan ingin meluncurkan kurikulum berbasis kecerdasan buatan (AI) secara nasional. Namun, implementasi seragam akan gagal karena perbedaan drastis pada infrastruktur (ketersediaan komputer & internet) dan SDM (guru tersertifikasi & literasi dasar) antar provinsi.
 
 ### Tujuan Teknis
+
 Membangun pipeline otomatis (CI/CD/CT) yang meminimalisir intervensi manual dan kesalahan manusia.
 
 ### Tujuan Model
+
 Mengidentifikasi kelompok-kelompok homogen (Klaster) provinsi berdasarkan indikator kesiapan. Hasilnya akan digunakan untuk:
 
 Klaster 0 (Tinggi): Provinsi yang siap menerapkan kurikulum AI penuh (misal: Jawa, Bali, Sumatera Utara).
@@ -88,32 +91,32 @@ graph TB
     %% DATA EXTRACTION & LOADING
     PostgreSQL -->|📤 Extract| Mage
     Mage -->|🔄 Transform & Load| Pipeline
-    
+
     %% VERSIONING FLOW
     Pipeline -->|💾 Snapshot| DVC
     DVC -->|📤 Upload| RemoteStorage
-    
+
     %% TRAINING & TRACKING
     Pipeline -->|🔬 Train Models| ScikitLearn
     ScikitLearn -->|📊 Generate| Visualization
     Pipeline -->|📝 Log Metrics| MLflow
     Visualization -->|📸 Store| MLflow
-    
+
     %% MODEL SERVING
     MLflow -->|🏆 Champion Model| FastAPI
     FastAPI -->|📡 API Endpoint| Streamlit
-    
+
     %% CI/CD PIPELINE
     Git -->|💾 Commit| GitHub
     GitHub -->|🔔 Trigger| Actions
     Actions -->|✅ Test & Build| Docker
     Docker -->|🔗 Compose| Compose
-    
+
     %% DEPLOYMENT
     Compose -->|🚀 Deploy| EC2
     EC2 -->|🏃 Run| FastAPI
     EC2 -->|🏃 Run| Mage
-    
+
     %% MONITORING FEEDBACK
     FastAPI -->|📊 Send Metrics| Prometheus
     PostgreSQL -->|📋 Sample Data| Evidently
@@ -121,17 +124,17 @@ graph TB
     Prometheus -->|📊 Visualize| Grafana
     Grafana -->|🔔 Alert| Mage
     Mage -->|🔄 Retrain| Pipeline
-    
+
     %% SECURITY
     Actions -->|🔐 SSH Keys| EC2
-    
+
     %% Minimalist Styling
     classDef minimal fill:#f5f5f5,stroke:#333,stroke-width:1px,color:#000
     classDef header fill:#e8e8e8,stroke:#333,stroke-width:2px,color:#000
     classDef process fill:#fafafa,stroke:#666,stroke-width:1px,color:#000
     classDef data fill:#f0f0f0,stroke:#555,stroke-width:1px,color:#000
     classDef highlight fill:#f9f9f9,stroke:#333,stroke-width:1.5px,color:#000
-    
+
     class Data,Experiment,Training,Serving,CI,Infrastructure,Monitoring header
     class PostgreSQL,RemoteStorage,EC2 data
     class Pipeline,FastAPI,Mage,Grafana highlight
@@ -153,64 +156,64 @@ graph TB
 
 ### A. DevOps & CI/CD
 
-| Teknologi | Tipe | Dependensi | Fungsi |
-|-----------|------|-----------|--------|
-| **Git** | CLI Tool | `.gitignore` | Melacak perubahan source code (Version Control) |
-| **GitHub** | Platform | — | Penyimpanan repositori kode remote (Cloud Repo) |
-| **GitHub Actions** | CI/CD | `.github/workflows/*.yml` | Robot otomatis untuk Testing (CI) dan Deployment (CD) ke AWS |
-| **SSH** | Protocol | `ssh-keys` | Protokol keamanan untuk GitHub Actions akses server AWS |
+| Teknologi          | Tipe     | Dependensi                | Fungsi                                                       |
+| ------------------ | -------- | ------------------------- | ------------------------------------------------------------ |
+| **Git**            | CLI Tool | `.gitignore`              | Melacak perubahan source code (Version Control)              |
+| **GitHub**         | Platform | —                         | Penyimpanan repositori kode remote (Cloud Repo)              |
+| **GitHub Actions** | CI/CD    | `.github/workflows/*.yml` | Robot otomatis untuk Testing (CI) dan Deployment (CD) ke AWS |
+| **SSH**            | Protocol | `ssh-keys`                | Protokol keamanan untuk GitHub Actions akses server AWS      |
 
 ### B. Infrastructure & Cloud
 
-| Teknologi | Tipe | Dependensi | Fungsi |
-|-----------|------|-----------|--------|
-| **AWS EC2** | Cloud Server | — | Virtual Machine (Server Ubuntu) untuk Docker container |
-| **AWS S3** | Cloud Storage | `boto3` | Penyimpanan data fisik DVC (Data Versioning Remote Storage) |
-| **Docker** | Container | `Dockerfile` | Membungkus aplikasi menjadi paket portabel |
-| **Docker Compose** | Orchestrator | `docker-compose.yml` | Menjalankan multi-container (Mage, DB, App, MLflow) |
+| Teknologi          | Tipe          | Dependensi           | Fungsi                                                      |
+| ------------------ | ------------- | -------------------- | ----------------------------------------------------------- |
+| **AWS EC2**        | Cloud Server  | —                    | Virtual Machine (Server Ubuntu) untuk Docker container      |
+| **AWS S3**         | Cloud Storage | `boto3`              | Penyimpanan data fisik DVC (Data Versioning Remote Storage) |
+| **Docker**         | Container     | `Dockerfile`         | Membungkus aplikasi menjadi paket portabel                  |
+| **Docker Compose** | Orchestrator  | `docker-compose.yml` | Menjalankan multi-container (Mage, DB, App, MLflow)         |
 
 ### C. Data Stack
 
-| Teknologi | Tipe | Library Python | Fungsi |
-|-----------|------|---|--------|
-| **PostgreSQL 15** | Database | `psycopg2-binary`, `SQLAlchemy` | Single Source of Truth untuk data pendidikan |
-| **DVC** | Versioning | `dvc`, `dvc-s3` | Melacak versi dataset (wajib dvc-s3 untuk AWS S3) |
-| **Pandas** | Data Library | `pandas`, `openpyxl` | Pengolahan data (openpyxl wajib untuk file .xlsx) |
+| Teknologi         | Tipe         | Library Python                  | Fungsi                                            |
+| ----------------- | ------------ | ------------------------------- | ------------------------------------------------- |
+| **PostgreSQL 15** | Database     | `psycopg2-binary`, `SQLAlchemy` | Single Source of Truth untuk data pendidikan      |
+| **DVC**           | Versioning   | `dvc`, `dvc-s3`                 | Melacak versi dataset (wajib dvc-s3 untuk AWS S3) |
+| **Pandas**        | Data Library | `pandas`, `openpyxl`            | Pengolahan data (openpyxl wajib untuk file .xlsx) |
 
 ### D. Machine Learning & Training
 
-| Teknologi | Tipe | Library Python | Fungsi |
-|-----------|------|---|--------|
-| **Mage.ai** | Pipeline Tool | `mage-ai` | Mengatur jadwal: Load Data → Clean → Train |
-| **Scikit-Learn** | ML Library | `scikit-learn`, `numpy`, `scipy` | Algoritma K-Means dan perhitungan jarak |
-| **MLflow** | Tracking Tool | `mlflow` | Mencatat skor Silhouette dan menyimpan model .pkl |
-| **Matplotlib** | Visualization | `matplotlib`, `seaborn` | Membuat grafik Elbow Method statis untuk MLflow |
+| Teknologi        | Tipe          | Library Python                   | Fungsi                                            |
+| ---------------- | ------------- | -------------------------------- | ------------------------------------------------- |
+| **Mage.ai**      | Pipeline Tool | `mage-ai`                        | Mengatur jadwal: Load Data → Clean → Train        |
+| **Scikit-Learn** | ML Library    | `scikit-learn`, `numpy`, `scipy` | Algoritma K-Means dan perhitungan jarak           |
+| **MLflow**       | Tracking Tool | `mlflow`                         | Mencatat skor Silhouette dan menyimpan model .pkl |
+| **Matplotlib**   | Visualization | `matplotlib`, `seaborn`          | Membuat grafik Elbow Method statis untuk MLflow   |
 
 ### E. Application Serving & Frontend
 
-| Teknologi | Tipe | Library Python | Fungsi |
-|-----------|------|---|--------|
-| **FastAPI** | Backend Framework | `fastapi`, `uvicorn`, `pydantic` | REST API (POST /predict) dengan validasi tipe data JSON |
-| **Streamlit** | Frontend Framework | `streamlit`, `requests`, `plotly` | UI Dashboard interaktif (requests untuk API backend) |
-| **Python-Multipart** | Library | `python-multipart` | Wajib jika API perlu menerima upload file (Form Data) |
+| Teknologi            | Tipe               | Library Python                    | Fungsi                                                  |
+| -------------------- | ------------------ | --------------------------------- | ------------------------------------------------------- |
+| **FastAPI**          | Backend Framework  | `fastapi`, `uvicorn`, `pydantic`  | REST API (POST /predict) dengan validasi tipe data JSON |
+| **Streamlit**        | Frontend Framework | `streamlit`, `requests`, `plotly` | UI Dashboard interaktif (requests untuk API backend)    |
+| **Python-Multipart** | Library            | `python-multipart`                | Wajib jika API perlu menerima upload file (Form Data)   |
 
 ### F. Monitoring & Observability
 
-| Teknologi | Tipe | Config/Library | Fungsi |
-|-----------|------|---|--------|
-| **Prometheus** | Time-series DB | `prometheus-fastapi-instrumentator` | Mengambil data latensi API dari FastAPI |
-| **Grafana** | Visualization | — (Service Docker) | Dashboard pusat untuk CPU, RAM, dan Data Drift |
-| **Evidently AI** | ML Monitoring | `evidently` | Mendeteksi Data Drift (Perubahan pola data input) |
+| Teknologi        | Tipe           | Config/Library                      | Fungsi                                            |
+| ---------------- | -------------- | ----------------------------------- | ------------------------------------------------- |
+| **Prometheus**   | Time-series DB | `prometheus-fastapi-instrumentator` | Mengambil data latensi API dari FastAPI           |
+| **Grafana**      | Visualization  | — (Service Docker)                  | Dashboard pusat untuk CPU, RAM, dan Data Drift    |
+| **Evidently AI** | ML Monitoring  | `evidently`                         | Mendeteksi Data Drift (Perubahan pola data input) |
 
 ### G. Code Quality & Security
 
-| Teknologi | Tipe | Library/Config | Fungsi |
-|-----------|------|---|--------|
-| **Ruff** | Linter | `ruff` | Mencari bug dan error kode Python |
-| **Black** | Formatter | `black` | Merapikan format kode Python otomatis (PEP-8) |
-| **Prettier** | Formatter | `prettier` | Merapikan file YAML, JSON, Markdown |
-| **Pytest** | Testing | `pytest`, `httpx` | Tes otomatis di CI Pipeline (httpx untuk tes API async) |
-| **Dotenv** | Security | `python-dotenv` | Membaca variabel sensitif dari file `.env` |
+| Teknologi    | Tipe      | Library/Config    | Fungsi                                                  |
+| ------------ | --------- | ----------------- | ------------------------------------------------------- |
+| **Ruff**     | Linter    | `ruff`            | Mencari bug dan error kode Python                       |
+| **Black**    | Formatter | `black`           | Merapikan format kode Python otomatis (PEP-8)           |
+| **Prettier** | Formatter | `prettier`        | Merapikan file YAML, JSON, Markdown                     |
+| **Pytest**   | Testing   | `pytest`, `httpx` | Tes otomatis di CI Pipeline (httpx untuk tes API async) |
+| **Dotenv**   | Security  | `python-dotenv`   | Membaca variabel sensitif dari file `.env`              |
 
 ---
 
@@ -235,11 +238,13 @@ Sistem melatih beberapa variasi model sekaligus (Hyperparameter Tuning) untuk me
 **Skenario Eksperimen**: Looping training dengan `n_clusters = [2, 3, 4, 5, 6]`
 
 **Metrik Pembanding**:
+
 - **Silhouette Score** (Prioritas Utama): Mengukur seberapa baik objek terpisah antar klaster
 - **Inertia (WCSS)**: Mengukur kekompakan dalam klaster
 - **Davies-Bouldin Index**: Rasio pemisahan antar klaster
 
 **Visualisasi (via MLflow UI)**:
+
 - **Parallel Coordinates Plot**: Sumbu X adalah Parameter (n_clusters), Sumbu Y adalah Metrik (silhouette)
 - **Scatter Plot Matrix**: Membandingkan distribusi klaster model A vs model B
 
@@ -252,6 +257,7 @@ Model terbaik (Champion Model) dibungkus oleh **FastAPI**.
 **Endpoint**: `POST /predict`
 
 **Input (JSON Request)**:
+
 ```json
 {
   "provinsi_id": "P35",
@@ -264,6 +270,7 @@ Model terbaik (Champion Model) dibungkus oleh **FastAPI**.
 ```
 
 **Output (JSON Response)**:
+
 ```json
 {
   "cluster": 1,
@@ -287,7 +294,7 @@ graph LR
     F -->|Drift Detected| G["CT: Retrain Model"]
     G -->|New Model Better| H["CT: Update Production"]
     H -->|Success| I["Deploy to API"]
-    
+
     B -->|Fail| J["❌ Notify Developer"]
     C -->|Fail| J
 ```
@@ -298,6 +305,7 @@ graph LR
 **Trigger**: Push ke branch `main`
 
 **Langkah**:
+
 1. **Environment Setup**: Install Python & Dependencies (tanpa library berat ML)
 2. **Code Quality Check**:
    - `ruff check .` (Mendeteksi bug, variabel tak terpakai)
@@ -311,6 +319,7 @@ graph LR
 **Trigger**: CI Lulus
 
 **Langkah**:
+
 1. **SSH Login**: Masuk ke server AWS EC2
 2. **Code Pull**: Ambil kode terbaru dari Git
 3. **Container Rebuild**: `docker-compose up -d --build backend frontend`
@@ -321,6 +330,7 @@ graph LR
 **Trigger**: Jadwal Bulanan / Data Drift Alert
 
 **Langkah**:
+
 1. **Detect**: Evidently mendeteksi data baru memiliki distribusi berbeda
 2. **Retrain**: Mage menjalankan pipeline training ulang dengan data baru
 3. **Compare**: Jika Silhouette Score model baru > model lama, model baru didaftarkan ke MLflow
@@ -335,6 +345,7 @@ graph LR
 1. **Input**: Pemerintah Daerah mengupdate data "Rata-rata Lama Sekolah" di PostgreSQL
 
 2. **Proses**:
+
    - Mage mendeteksi perubahan
    - Data disnapshot oleh DVC (Versi `v_2025_Q1`)
    - Model dilatih ulang → Provinsi Jawa Timur berpindah dari "Klaster Sedang" ke "Klaster Tinggi"
@@ -352,6 +363,7 @@ graph LR
 ## 🚀 Panduan Instalasi
 
 ### Prasyarat
+
 - Python 3.9+
 - Docker & Docker Compose
 - PostgreSQL 15
@@ -361,34 +373,39 @@ graph LR
 ### Setup Lokal
 
 1. **Clone Repository**
+
    ```bash
    git clone https://github.com/your-repo/devmlops-architecture.git
    cd devmlops-architecture
    ```
 
 2. **Setup Environment Variables**
+
    ```bash
    cp .env.example .env
    # Edit .env dengan konfigurasi PostgreSQL, AWS, dan MLflow Anda
    ```
 
 3. **Install Dependencies**
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # Linux/Mac
    # atau
    venv\Scripts\activate  # Windows
-   
+
    pip install -r requirements.txt
    ```
 
 4. **Setup PostgreSQL**
+
    ```bash
    createdb education_db
    psql education_db < schema.sql
    ```
 
 5. **Jalankan dengan Docker Compose**
+
    ```bash
    docker-compose up -d
    ```
@@ -404,27 +421,32 @@ graph LR
 ## 📋 Detail Implementasi Per Skenario
 
 ### A. Data Versioning & Management
+
 - **Sumber Data**: Database PostgreSQL (Tabel education_data)
 - **Alat**: DVC (Data Version Control)
 - **Manfaat**: Rollback ke versi dataset minggu lalu jika data rusak
 
 ### B. Experiment Tracking
+
 - **Alat**: MLflow
 - **Parameter Terukur**: n_clusters, init, random_state
 - **Metrik Terukur**: silhouette_score, inertia, davies_bouldin_index
 - **Visualisasi**: Parallel Coordinates & Scatter Plot Matrix
 
 ### C. Orchestration & Reproducibility
+
 - **Alat**: Mage.ai (DAG) + Docker (Environment Isolation)
 - **Pipeline**: Load → Clean → Train → Register
 - **Benefit**: Reproducible di laptop pengembang maupun server dosen
 
 ### D. Model Deployment (Serving)
+
 - **Alat**: FastAPI
 - **Contract**: POST /predict dengan input JSON → output JSON
 - **Auto Load**: Container FastAPI otomatis meminta model "Production" dari MLflow
 
 ### E. Monitoring & Alerting (Drift Detection)
+
 - **Tantangan**: Clustering adalah unsupervised learning (tidak ada label Benar/Salah)
 - **Solusi**: Monitoring Data Drift (Pergeseran Distribusi Data)
 - **Alat**: Evidently AI + Prometheus + Grafana
@@ -439,6 +461,7 @@ graph LR
 ## Minggu 1: Infrastruktur & Data Engineering Foundation
 
 ### Hari 1-2: Environment Setup & Infrastruktur
+
 - [x] Finalisasi Desain Arsitektur & Dokumen Teknis
 - [ ] Instalasi Docker Desktop & Git
 - [ ] Setup Repository GitHub
@@ -446,12 +469,14 @@ graph LR
 - [ ] Test Run: Semua service UP (Healthy)
 
 ### Hari 3-4: Database & Data Ingestion
+
 - [ ] Inisialisasi Tabel PostgreSQL
 - [ ] Seed/Import data dummy atau data riil (Excel/CSV)
 - [ ] Konfigurasi Mage.ai: Buat Data Loader Block (SQL)
 - [ ] Test: Data berhasil di-load dari PostgreSQL ke Mage
 
 ### Hari 5-7: Data Versioning & Preprocessing
+
 - [ ] Konfigurasi DVC: Init DVC di folder `data/`
 - [ ] Integrasi Mage + DVC untuk snapshot data otomatis
 - [ ] Buat Transformer Block: Cleaning, Handling Null, Scaling
@@ -464,16 +489,19 @@ graph LR
 ## Minggu 2: Model Development & MLOps
 
 ### Hari 8-9: Model Training & Experiment Tracking
+
 - [ ] Buat Training Block: Implementasi K-Means (Scikit-Learn)
 - [ ] Integrasi MLflow: Logging parameter dan metrik (Silhouette, Inertia)
 - [ ] Simpan plot visualisasi sebagai artifact di MLflow
 
 ### Hari 10-11: Hyperparameter Tuning & Model Registry
+
 - [ ] Looping eksperimen untuk mencari k terbaik (Elbow Method otomatis)
 - [ ] Registrasi model terbaik ke MLflow Model Registry
 - [ ] Label model sebagai "Production"
 
 ### Hari 12-14: Backend API Development
+
 - [ ] Buat logika `prediction.py`: Load model dari MLflow dinamis
 - [ ] Buat endpoint `POST /predict` dengan validasi Pydantic
 - [ ] Setup FastAPI dengan CORS
@@ -486,17 +514,20 @@ graph LR
 ## Minggu 3: Frontend, Monitoring & Testing
 
 ### Hari 15-16: Frontend Dashboard
+
 - [ ] Buat layout UI Streamlit (Sidebar, Main page)
 - [ ] Integrasi Form Input → Request ke FastAPI → Tampilkan Response
 - [ ] Visualisasi hasil klaster (Scatter Plot dengan Plotly)
 
 ### Hari 17-18: System & ML Monitoring
+
 - [ ] Setup Prometheus untuk scrape FastAPI metrics
 - [ ] Konfigurasi Dashboard Grafana: RPS, Latency, Error Rate
 - [ ] Implementasi Evidently AI: Data Drift Detection
 - [ ] (Opsional) Tampilkan Drift Report di Streamlit
 
 ### Hari 19-21: Code Quality & Testing
+
 - [ ] Setup `pre-commit` hooks (Ruff, Black)
 - [ ] Buat Unit Test dengan pytest:
   - Test fungsi data cleaning
@@ -511,6 +542,7 @@ graph LR
 ## Minggu 4: CI/CD, Integration & Documentation
 
 ### Hari 22-23: GitHub Actions & CI/CD Pipeline
+
 - [ ] Buat `.github/workflows/ci.yml`:
   - Automated testing (pytest)
   - Code quality checks (Ruff, Black)
@@ -519,6 +551,7 @@ graph LR
 - [ ] Test end-to-end: Push code → GitHub Actions running → Pass/Fail
 
 ### Hari 24-25: Integration Testing & Full Cycle
+
 - [ ] Full Cycle Test:
   - Update data DB
   - Retrain model di Mage
@@ -529,6 +562,7 @@ graph LR
 - [ ] Test drift detection: Inject anomali data → Alert terdeteksi
 
 ### Hari 26-28: Dokumentasi & Demo Preparation
+
 - [ ] Update `README.md`:
   - Setup instructions
   - Architecture diagram
@@ -560,6 +594,7 @@ graph LR
 ## 🤝 Berkontribusi
 
 Kami menerima kontribusi! Silakan buat Pull Request atau laporkan Issue untuk:
+
 - Perbaikan dokumentasi
 - Optimisasi kode
 - Fitur baru

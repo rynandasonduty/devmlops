@@ -1,0 +1,23 @@
+global:
+  resolve_timeout: 5m
+  # Konfigurasi Server SMTP (Pengirim Email)
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alert-bot@devmlops.com'
+  smtp_auth_username: 'rynanda1202@gmail.com'
+  smtp_auth_password: 'ydgo bmbo xzwn jciv'
+  smtp_require_tls: true
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'email-notifications'
+
+receivers:
+  - name: 'email-notifications'
+    email_configs:
+      - to: 'rynanda1202@gmail.com'
+        send_resolved: true
+        headers:
+          Subject: '🚨 [DevMLOps: Project Ganteng Alert] {{ .GroupLabels.alertname }}'

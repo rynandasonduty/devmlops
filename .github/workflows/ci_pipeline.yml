@@ -9,6 +9,11 @@ on:
 jobs:
   quality-check:
     runs-on: ubuntu-latest
+
+    # Service Container untuk Test Integration (Opsional, nanti di Step 6)
+    # services:
+    #   postgres: ...
+
     steps:
       - uses: actions/checkout@v3
 
@@ -16,33 +21,38 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+          cache: 'pip' # Fitur baru: Cache dependencies biar cepat
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install ruff black pytest python-dotenv httpx
-          # Install dependencies backend untuk keperluan testing
+          pip install ruff black pytest httpx python-dotenv
+          # Install requirements backend agar test API jalan
           if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
 
-      - name: 1. Lint with Ruff
+      - name: 1. Lint with Ruff (Code Quality)
         run: |
-          # Stop the build if there are Python syntax errors or undefined names
+          # --exit-zero treats all errors as warnings. 
+          # Hapus --exit-zero jika ingin pipeline STOP saat ada error
           ruff check .
 
       - name: 2. Format check with Black
         run: |
           black --check .
 
-      - name: 3. Format check with Prettier (YAML/JSON/MD)
+      - name: 3. Format check with Prettier (Docs & Config)
         uses: creyD/prettier_action@v4.3
         with:
           dry: true
-          prettier_options: --check **/*.{json,yaml,md}
+          prettier_options: --check **/*.{json,yaml,md,yml}
 
-      - name: 4. Test with Pytest
-        # Pastikan Anda membuat folder tests/ di root nanti
+      - name: 4. Run Unit Tests (Pytest)
+        env:
+          # Dummy env vars agar test tidak gagal koneksi DB
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+          MLFLOW_TRACKING_URI: http://localhost:5000
         run: |
-          # Buat dummy test jika belum ada folder tests agar pipeline tidak fail
-          mkdir -p tests
-          if [ -z "$(ls -A tests)" ]; then echo "def test_dummy(): assert True" > tests/test_placeholder.py; fi
-          pytest
+          # Menjalankan pytest dengan path root
+          python -m pytest

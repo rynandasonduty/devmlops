@@ -1,8 +1,41 @@
 global:
-  scrape_interval: 5s # Ambil data setiap 5 detik
+  scrape_interval: 5s # Scrape tiap 5 detik (High Resolution)
+  evaluation_interval: 15s
+
+# Load rules alerting
+rule_files:
+  - 'alert_rules.yml'
+
+# Konfigurasi Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
 
 scrape_configs:
-  - job_name: "fastapi-backend"
-    metrics_path: "/metrics"
+  # 1. Prometheus itu sendiri
+  - job_name: 'prometheus'
     static_configs:
-      - targets: ["backend:8000"] # Hostname sesuai nama service di docker-compose
+      - targets: ['localhost:9090']
+
+  # 2. Backend API (FastAPI Golden Signals)
+  - job_name: 'backend-api'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['backend:8000']
+
+  # 3. Node Exporter (Hardware Host)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # 4. cAdvisor (Docker Containers)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  # 5. Postgres Exporter (Database Stats)
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']

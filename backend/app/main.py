@@ -1,11 +1,14 @@
 import os
 import joblib
 import pandas as pd
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from prometheus_fastapi_instrumentator import Instrumentator
 from contextlib import asynccontextmanager
 
+
+load_dotenv()
 
 # --- 1. Definisi Schema Input (14 Fitur) ---
 class ProvinceFeatures(BaseModel):

@@ -1,9 +1,7 @@
-version: '3.8'
 
 services:
   # =========================================
   # 1. DATA PLANE (PostgreSQL)
-  # FIX: Healthcheck variable is corrected
   # =========================================
   postgres:
     image: postgres:15
@@ -26,10 +24,8 @@ services:
 
   # =========================================
   # 2. ORCHESTRATION PLANE (Mage.ai)
-  # FIX LOGIN AKHIR: Menggunakan perintah startup dengan DISABLE_AUTH=1
   # =========================================
   mage:
-    # image: mageai/mageai:latest
     build: ./mage_pipeline
     container_name: mlops-mage
     ports:
@@ -37,13 +33,12 @@ services:
     volumes:
       - ./mage_pipeline:/home/src
       - ./mage_data:/home/src/mage_data
-      - ./data:/home/src/data  # Mount folder data untuk DVC
-      - ./mlruns:/mlruns  # <--- TAMBAHKAN BARIS INI (Shared Volume Artifacts)
+      - ./data:/home/src/data
+      - ./mlruns:/mlruns # Shared volume untuk MLflow artifacts
     environment:
       POSTGRES_CONNECT_STRING: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       MLFLOW_TRACKING_URI: http://mlflow:5000
-      MAGE_AUTHENTICATION_ENABLED: "False" # Tambahkan ini sebagai lapisan pengaman
-    command: bash -c "DISABLE_AUTH=1 mage start project_education" # <--- PERBAIKAN INI MEMAKSA AUTH MATI
+    command: mage start project_education
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,12 +51,13 @@ services:
   # 3. EXPERIMENTATION PLANE (MLflow)
   # =========================================
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.14.0  # <--- WAJIB VERSI INI
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: mlops-mlflow
     ports:
       - "5000:5000"
-    # Perhatikan path sqlite:///mlflow/mlflow.db
-    command: mlflow server --backend-store-uri sqlite:///mlflow/mlflow.db --default-artifact-root ./mlruns --host 0.0.0.0
+    command: mlflow server --backend-store-uri sqlite:////mlflow/mlflow.db --default-artifact-root /mlruns --host 0.0.0.0
     volumes:
       - ./mlruns:/mlruns
       - ./mlflow_data:/mlflow
@@ -103,19 +99,55 @@ services:
       - mlops-net
 
   # =========================================
-  # 6. MONITORING PLANE (Prometheus + Grafana)
+  # 6. MONITORING INFRASTRUCTURE (The Upgrades)
   # =========================================
+  
+  # A. Prometheus (Metrics Collector)
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:latest
     container_name: mlops-prometheus
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml 
+      - prometheus_data:/prometheus 
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d' # Simpan data 15 hari
     ports:
       - "9090:9090"
     networks:
       - mlops-net
 
+  # B. Grafana (Visualization)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mlops-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana # PERSISTENSI DASHBOARD
+    depends_on:
+      - prometheus
+    networks:
+      - mlops-net
+
+  # C. Node Exporter (Host Hardware Metrics - CPU, Disk, RAM)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: mlops-node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command: 
+      - '--path.procfs=/host/proc' 
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - mlops-net
+
+  # D. cAdvisor (Docker Container Metrics)
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: mlops-cadvisor
@@ -130,22 +162,32 @@ services:
     networks:
       - mlops-net
 
-  grafana:
-    image: grafana/grafana
-    container_name: mlops-grafana
+  # E. Postgres Exporter (Database Metrics)
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: mlops-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    networks:
+      - mlops-net
+      
+  # F. Alertmanager (Notification Handler)
+  alertmanager:
+    image: prom/alertmanager
+    container_name: mlops-alertmanager
     ports:
-      - "3000:3000"
+      - "9093:9093"
     volumes:
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
+      - ./monitoring/alertmanager/config.yml:/etc/alertmanager/config.yml
+    command: --config.file=/etc/alertmanager/config.yml
     networks:
       - mlops-net
 
 volumes:
   postgres_data:
-  grafana_data:       
-  prometheus_data:                # <--- TAMBAHAN BARU: Definisikan volume grafana
+  grafana_data:    
+  prometheus_data: 
+  mage_data:
 
 networks:
   mlops-net:
