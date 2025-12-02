@@ -1,5 +1,7 @@
 [core]
     no_scm = True
-    remote = local_storage
+    remote = myremote
 ['remote "local_storage"']
     url = /home/src/data
+['remote "myremote"']
+    url = E:\mlops_storage_cloud
