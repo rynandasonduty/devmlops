@@ -110,6 +110,7 @@ services:
     container_name: mlops-prometheus
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
     networks:
@@ -129,7 +130,8 @@ services:
 
 volumes:
   postgres_data:
-  grafana_data:                       # <--- TAMBAHAN BARU: Definisikan volume grafana
+  grafana_data:       
+  prometheus_data:                # <--- TAMBAHAN BARU: Definisikan volume grafana
 
 networks:
   mlops-net:
