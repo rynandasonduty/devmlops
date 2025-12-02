@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 load_dotenv()
 
+
 # --- 1. Definisi Schema Input (14 Fitur) ---
 class ProvinceFeatures(BaseModel):
     # Tidak perlu input 'Provinsi' (nama) karena tidak masuk ke model
