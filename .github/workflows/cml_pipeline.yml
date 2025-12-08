@@ -1,0 +1,92 @@
+name: CML Report
+
+on:
+  pull_request:
+    branches: ['main']
+
+jobs:
+  train-and-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+      id-token: write # Wajib untuk CML
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # 1. Setup CML & DVC
+      - name: Setup CML
+        uses: iterative/setup-cml@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      # 2. Install Dependencies Data Science
+      - name: Install Requirements
+        run: |
+          pip install pandas scikit-learn matplotlib seaborn shap evidently mlflow optuna
+
+      # 3. Jalankan Simulasi Training (Versi Ringan untuk CI)
+      # Kita buat script python on-the-fly atau panggil script yang ada.
+      # Di sini kita akan jalankan script training secara langsung tanpa Mage
+      # (Karena menyalakan full Mage di CI terlalu berat untuk Free Tier).
+      # Kita asumsikan script bisa jalan standalone jika data CSV ada.
+      - name: Train Model & Generate Report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # A. Pastikan folder artifacts ada
+          mkdir -p mage_pipeline/artifacts
+
+          # B. Jalankan Training (Kita panggil script python secara manual)
+          # Perlu sedikit penyesuaian path karena kita tidak di dalam container Mage
+          # Kita buat script wrapper sederhana 'run_cml.py' di sini
+
+          cat <<EOF > run_cml.py
+          import pandas as pd
+          from sklearn.cluster import KMeans
+          from sklearn.metrics import silhouette_score
+          import matplotlib.pyplot as plt
+          import os
+
+          # Load Data (Gunakan data CSV yang ada di repo)
+          df = pd.read_csv('mage_pipeline/data_kesiapan_pendidikan_final.csv')
+          X = df.select_dtypes(include=['number']).dropna()
+
+          # Train Sederhana untuk Report CML
+          k = 3
+          kmeans = KMeans(n_clusters=k, random_state=42).fit(X)
+          score = silhouette_score(X, kmeans.labels_)
+
+          # Simpan Metrics
+          with open("metrics.txt", "w") as f:
+              f.write(f"Silhouette Score: {score:.4f}\n")
+              f.write(f"Inertia: {kmeans.inertia_:.2f}\n")
+
+          # Buat Plot Sederhana
+          plt.figure(figsize=(6,4))
+          plt.scatter(X.iloc[:,0], X.iloc[:,1], c=kmeans.labels_, cmap='viridis')
+          plt.title("Cluster Preview (CI Run)")
+          plt.savefig("cluster_preview.png")
+          print("✅ CML Run Completed")
+          EOF
+
+          # Jalankan script wrapper
+          python run_cml.py
+
+          # C. Buat Laporan Markdown CML
+          echo "## 🤖 CML Model Report" > report.md
+          echo "Hasil training otomatis dari PR ini:" >> report.md
+          echo "" >> report.md
+          echo "### 📊 Metrics" >> report.md
+          cat metrics.txt >> report.md
+          echo "" >> report.md
+          echo "### 📈 Visualisasi" >> report.md
+          echo "![](./cluster_preview.png)" >> report.md
+
+          # D. Kirim ke GitHub Comment
+          cml comment create report.md
