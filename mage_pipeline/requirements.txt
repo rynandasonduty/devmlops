@@ -18,3 +18,5 @@ python-dotenv
 sqlalchemy
 dvc
 dvc-s3
+optuna         
+shap

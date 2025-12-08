@@ -1,61 +1,104 @@
 import mlflow
 import mlflow.sklearn
 import pandas as pd
+import numpy as np
 import joblib
+import json
 import os
+import optuna
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 if "data_exporter" not in globals():
     from mage_ai.data_preparation.decorators import data_exporter
 
-# Setup Path
+# --- KONFIGURASI PATH ---
 ARTIFACTS_ROOT_DIR = "/home/src/artifacts"
 MODEL_PATH = os.path.join(ARTIFACTS_ROOT_DIR, "kmeans_model.pkl")
+METADATA_PATH = os.path.join(ARTIFACTS_ROOT_DIR, "cluster_metadata.json")
 
+# --- FUNGSI OPTIMASI ---
+def objective(trial, X):
+    # Search Space: Kita cari k antara 3 sampai 5
+    n_clusters = trial.suggest_int("n_clusters", 3, 5)
+    
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    labels = kmeans.fit_predict(X)
+    
+    score = silhouette_score(X, labels)
+    return score
 
 @data_exporter
 def train_and_log_model(df: pd.DataFrame, *args, **kwargs):
-    # Setup MLflow Tracking URI (sesuai docker-compose)
+    # 1. Setup MLflow
     mlflow.set_tracking_uri("http://mlflow:5000")
     mlflow.set_experiment("project_education_clustering")
 
-    # Pisahkan fitur untuk training (drop provinsi)
-    X = df.drop(columns=["provinsi"])
+    # 2. Persiapan Data (Drop ID Provinsi)
+    if "provinsi" in df.columns:
+        provinsi_data = df["provinsi"]
+        X = df.drop(columns=["provinsi"])
+    else:
+        # Fallback jika tidak ada kolom provinsi
+        X = df.select_dtypes(include=[np.number])
+        provinsi_data = pd.Series(index=df.index, data=["Unknown"] * len(df))
 
-    # Parameter Model
-    n_clusters = 3
-    random_state = 42
+    print(f"🚀 Memulai Hyperparameter Tuning dengan Optuna (Data shape: {X.shape})...")
 
-    with mlflow.start_run():
-        print("🚀 Memulai Training K-Means...")
+    # 3. Jalankan Optuna untuk mencari k terbaik
+    study = optuna.create_study(direction="maximize")
+    study.optimize(lambda trial: objective(trial, X), n_trials=10) 
 
-        # 1. Train Model
-        kmeans = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
-        kmeans.fit(X)
+    best_k = study.best_params["n_clusters"]
+    best_score = study.best_value
+    print(f"✅ Best Params: k={best_k} | Best Silhouette: {best_score:.4f}")
 
-        # 2. Hitung Metrik Evaluasi
-        labels = kmeans.labels_
-        inertia = kmeans.inertia_
-        silhouette = silhouette_score(X, labels)
+    # 4. Training Ulang dengan Parameter Terbaik (Final Model)
+    with mlflow.start_run(run_name="Best_KMeans_Model"):
+        kmeans_final = KMeans(n_clusters=best_k, random_state=42, n_init=10)
+        kmeans_final.fit(X)
+        labels = kmeans_final.labels_
+        
+        # Log Metrics & Params
+        mlflow.log_param("n_clusters", best_k)
+        mlflow.log_metric("silhouette_score", best_score)
+        mlflow.log_metric("inertia", kmeans_final.inertia_)
+        
+        # Log Model ke Registry
+        mlflow.sklearn.log_model(kmeans_final, "kmeans_education_model")
 
-        print(f"Cluster Centers:\n{kmeans.cluster_centers_}")
-        print(f"Inertia: {inertia}")
-        print(f"Silhouette Score: {silhouette}")
+        # --- 5. LOGIKA PENAMAAN CLUSTER DINAMIS (Anti-Label Switching) ---
+        cluster_centers = kmeans_final.cluster_centers_
+        # Hitung skor rata-rata tiap centroid 
+        centroid_scores = cluster_centers.mean(axis=1)
+        
+        # Buat mapping: Index Cluster -> Rank (0 terendah, dst)
+        sorted_indices = np.argsort(centroid_scores) 
+        
+        label_names = ["Rendah (Low)", "Sedang (Medium)", "Tinggi (High)"]
+        if best_k > 3:
+             label_names = [f"Level {i+1}" for i in range(best_k)]
 
-        # 3. Log ke MLflow
-        mlflow.log_param("n_clusters", n_clusters)
-        mlflow.log_metric("inertia", inertia)
-        mlflow.log_metric("silhouette_score", silhouette)
+        cluster_mapping = {}
+        for rank, original_id in enumerate(sorted_indices):
+            cluster_mapping[int(original_id)] = label_names[rank]
+            
+        print("🏷️ Cluster Interpretation (Mapping):", cluster_mapping)
 
-        # Log model ke MLflow Registry
-        mlflow.sklearn.log_model(kmeans, "kmeans_model")
+        # 6. Simpan Artifacts Fisik (Model & Metadata)
+        # FIX: Menggunakan variabel yang benar ARTIFACTS_ROOT_DIR
+        os.makedirs(ARTIFACTS_ROOT_DIR, exist_ok=True)
+        joblib.dump(kmeans_final, MODEL_PATH)
+        
+        with open(METADATA_PATH, "w") as f:
+            json.dump(cluster_mapping, f)
+            
+        print(f"✅ Model disimpan: {MODEL_PATH}")
+        print(f"✅ Metadata disimpan: {METADATA_PATH}")
 
-        # 4. Simpan Model Lokal (untuk dimuat FastAPI nanti)
-        joblib.dump(kmeans, MODEL_PATH)
-        print(f"✅ Model disimpan lokal di: {MODEL_PATH}")
-
-        # 5. (Opsional) Tambahkan hasil cluster ke DataFrame untuk debug
-        df["cluster"] = labels
-
-    return df
+    # Kembalikan dataframe dengan hasil prediksi
+    df_result = df.copy()
+    df_result["cluster_id"] = labels
+    df_result["cluster_label"] = df_result["cluster_id"].map(cluster_mapping)
+    
+    return df_result

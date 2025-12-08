@@ -15,7 +15,7 @@ RUN pip install dvc
 
 # 5. Install Evidently & Pydantic
 # Versi evidently>=0.4.15 aman karena tidak konflik dengan server
-RUN pip install evidently==0.6.0 pydantic==2.6.0
+RUN pip install evidently==0.6.0 pydantic==2.6.0 optuna shap
 
 # 6. Bersihkan cache
 RUN pip cache purge
