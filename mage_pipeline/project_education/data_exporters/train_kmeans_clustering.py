@@ -116,4 +116,8 @@ def train_and_log_model(df: pd.DataFrame, *args, **kwargs):
     cluster_stats.to_csv(PROFILE_PATH)
     print(f"✅ Cluster Profile disimpan: {PROFILE_PATH}")
 
+    LABELED_DATA_PATH = os.path.join(ARTIFACTS_ROOT_DIR, "data_labeled.csv")
+    df_result.to_csv(LABELED_DATA_PATH, index=False)
+    print(f"✅ Labeled Data disimpan: {LABELED_DATA_PATH}")
+
     return df_result

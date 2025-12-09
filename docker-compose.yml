@@ -99,6 +99,9 @@ services:
       - backend
     networks:
       - mlops-net
+    volumes:
+      - ./mage_pipeline/artifacts:/app/artifacts
+      - ./mage_pipeline:/app/mage_data_source
 
   # =========================================
   # 6. MONITORING INFRASTRUCTURE (The Upgrades)

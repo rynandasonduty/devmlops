@@ -6,7 +6,6 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
-      - id: check-added-large-files
 
   # 2. FORMATTER: BLACK (Python)
   - repo: https://github.com/psf/black

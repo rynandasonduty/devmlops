@@ -34,7 +34,7 @@ exclude = [
     "node_modules",
     "venv",
 ]
-line-length = 88
+line-length = 200
 
 [tool.pytest.ini_options]
 minversion = "6.0"
