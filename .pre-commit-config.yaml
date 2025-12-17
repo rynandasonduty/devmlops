@@ -7,12 +7,6 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
 
-  # 2. FORMATTER: BLACK (Python)
-  - repo: https://github.com/psf/black
-    rev: 23.9.1
-    hooks:
-      - id: black
-
   # 3. LINTER: RUFF (Pengganti Flake8 - Cepat)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.0.292
