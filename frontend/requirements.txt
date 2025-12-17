@@ -5,3 +5,4 @@ plotly
 altair
 python-dotenv
 statsmodels
+mlflow==2.14.0

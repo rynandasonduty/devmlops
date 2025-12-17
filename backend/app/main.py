@@ -13,21 +13,39 @@ load_dotenv()
 
 # --- 1. Definisi Schema Input (14 Fitur) ---
 class ProvinceFeatures(BaseModel):
-    # Tidak perlu input 'Provinsi' (nama) karena tidak masuk ke model
+    # 1. Internet (SD, SMP, SMA)
     persen_sekolah_internet_sd: float
     persen_sekolah_internet_smp: float
     persen_sekolah_internet_sma: float
+
+    # 2. Sertifikasi Guru (SD, SMP, SMA) - SEBELUMNYA SAYA TARUH LISTRIK DISINI, SALAH
     persen_guru_sertifikasi_sd: float
     persen_guru_sertifikasi_smp: float
     persen_guru_sertifikasi_sma: float
+
+    # 3. Rasio Guru
     rasio_siswa_guru_sd: float
     rasio_siswa_guru_smp: float
     rasio_siswa_guru_sma: float
+
+    # 4. Rasio Komputer
     rasio_siswa_komputer_sd: float
     rasio_siswa_komputer_smp: float
     rasio_siswa_komputer_sma: float
+
+    # 5. Output Siswa (AKM)
     persen_lulus_akm_literasi: float
     persen_lulus_akm_numerasi: float
+
+    # 6. Listrik (Urutan ke-15 di CSV)
+    persen_sekolah_listrik_sd: float
+    persen_sekolah_listrik_smp: float
+    persen_sekolah_listrik_sma: float
+
+    # 7. Kualifikasi Guru S1 (Urutan Terakhir di CSV)
+    persen_guru_kualifikasi_s1_sd: float
+    persen_guru_kualifikasi_s1_smp: float
+    persen_guru_kualifikasi_s1_sma: float
 
 
 # --- 2. Global Variables untuk Model ---

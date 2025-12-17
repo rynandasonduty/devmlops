@@ -10,13 +10,13 @@ import shutil
 from pathlib import Path
 import plotly.express as px
 import numpy as np
-import secrets  # Added for secure key generation
+import secrets
 
 # ==============================================================================
 # PAGE CONFIGURATION
 # ==============================================================================
 st.set_page_config(
-    page_title="Admin Panel - Data Management",
+    page_title="Admin Dashboard",
     page_icon="⚙️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -205,6 +205,11 @@ st.markdown(
         padding-top: 1rem !important;
         padding-bottom: 1rem !important;
     }
+    /* Sidebar Styling - Konsisten */
+    section[data-testid="stSidebar"] {
+        background-color: rgba(10, 14, 39, 0.95);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -213,24 +218,48 @@ st.markdown(
 # ==============================================================================
 # CONFIGURATION
 # ==============================================================================
-MAGE_HOST = os.getenv("MAGE_HOST", "http://mage:6789")
+MAGE_HOST = "http://mage:6789"
 TRIGGER_SCHEDULE_ID = int(os.getenv("TRIGGER_SCHEDULE_ID", "2"))
 TRIGGER_TOKEN = os.getenv("TRIGGER_TOKEN", "189557234d5e431a972f6d0926b719e9")
 
-# Paths
-DATA_DIR = Path("/app/mage_data_source")
-ARTIFACTS_DIR = Path("/home/src/artifacts")
-TARGET_FILE = DATA_DIR / "data_kesiapan_pendidikan_final.csv"
-VERSION_HISTORY_FILE = DATA_DIR / "version_history.json"
-API_KEYS_FILE = DATA_DIR / ".api_keys.json"
-PIPELINE_LOGS_FILE = DATA_DIR / "pipeline_logs.json"
+# Paths - Shared Volume Configuration
+BASE_DIR = Path("/app/mage_data_source")  # Root shared folder
+DATA_RAW_DIR = BASE_DIR / "data/raw"  # Raw data storage
+ARTIFACTS_DIR = BASE_DIR / "artifacts"  # Pipeline outputs
+
+
+# File Paths
+TARGET_FILE = DATA_RAW_DIR / "data_kesiapan_pendidikan_final.csv"
+VERSION_HISTORY_FILE = DATA_RAW_DIR / "version_history.json"
+API_KEYS_FILE = BASE_DIR / ".api_keys.json"
+PIPELINE_LOGS_FILE = BASE_DIR / "pipeline_logs.json"
 
 # Ensure directories exist
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Admin Password (ENV VAR or default)
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+
+# ==============================================================================
+# STANDARD SIDEBAR (Tambahkan ini di Dashboard_Publik.py dan Data_Management.py)
+# ==============================================================================
+with st.sidebar:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 🛠️ External Tools")
+    st.link_button(
+        "📦 MLflow Registry",
+        "http://localhost:5000",
+        help="Monitor eksperimen dan model versioning",
+    )
+    st.link_button(
+        "📈 Grafana Monitor",
+        "http://localhost:3000",
+        help="Dashboard monitoring infrastruktur & drift",
+    )
+
+    st.divider()
+    st.caption("© Andiar Rinanda Agastya")
 
 
 # ==============================================================================
@@ -296,7 +325,7 @@ def save_version_metadata(filename, user, df_info, file_hash):
             history = []
 
         version_num = len(history) + 1
-        version_file = DATA_DIR / f"data_v{version_num}.csv"
+        version_file = DATA_RAW_DIR / f"data_v{version_num}.csv"
 
         # Copy current file to versioned backup
         if TARGET_FILE.exists():
@@ -363,69 +392,48 @@ def rollback_version(version_num):
 
 
 def validate_dataframe(df):
-    """Comprehensive data validation"""
+    """Comprehensive data validation specific to Education Readiness Data"""
     issues = {"errors": [], "warnings": [], "info": []}
 
     # 1. Check required columns
-    required_cols = ["provinsi", "nama_provinsi"]
+    required_cols = ["Provinsi"]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         issues["errors"].append(f"Missing required columns: {', '.join(missing)}")
 
-    # 2. Check data types
-    numeric_cols = [
-        c for c in df.columns if "persen" in c or "rasio" in c or "indeks" in c
+    # 2. Check essential numeric columns presence
+    essential_metrics = [
+        "persen_sekolah_internet_sd",
+        "persen_sekolah_internet_smp",
+        "persen_guru_sertifikasi_sd",
+        "rasio_siswa_guru_sd",
+        "persen_lulus_akm_literasi",
+        "persen_lulus_akm_numerasi",
     ]
-    for col in numeric_cols:
-        if col in df.columns and not pd.api.types.is_numeric_dtype(df[col]):
-            issues["warnings"].append(f"Column '{col}' should be numeric")
+    missing_metrics = [c for c in essential_metrics if c not in df.columns]
+    if missing_metrics:
+        issues["warnings"].append(
+            f"Missing recommended metrics: {', '.join(missing_metrics)}"
+        )
 
-    # 3. Check value ranges
+    # 3. Check data types and ranges
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
     for col in numeric_cols:
-        if col in df.columns:
-            if pd.api.types.is_numeric_dtype(df[col]):
-                min_val = df[col].min()
-                max_val = df[col].max()
-                if min_val < 0:
-                    issues["warnings"].append(
-                        f"Column '{col}' has negative values: {min_val:.2f}"
-                    )
-                if "persen" in col and max_val > 100:
-                    issues["warnings"].append(
-                        f"Column '{col}' exceeds 100%: {max_val:.2f}"
-                    )
+        if "persen" in col.lower():
+            if df[col].max() > 100:
+                issues["warnings"].append(f"Column '{col}' has values > 100%")
+            if df[col].min() < 0:
+                issues["errors"].append(f"Column '{col}' has negative values")
 
     # 4. Check for duplicates
-    if "provinsi" in df.columns:
-        dups = df["provinsi"].duplicated().sum()
+    if "Provinsi" in df.columns:
+        dups = df["Provinsi"].duplicated().sum()
         if dups > 0:
-            issues["errors"].append(f"Found {dups} duplicate provinces")
+            issues["errors"].append(f"Found {dups} duplicate entries in 'Provinsi'")
 
-    # 5. Check completeness
-    missing_pct = (df.isnull().sum() / len(df) * 100).round(2)
-    critical_missing = missing_pct[missing_pct > 20]
-    if len(critical_missing) > 0:
-        issues["warnings"].append(
-            f"High missing data (>20%): {critical_missing.to_dict()}"
-        )
-
-    # 6. Statistical anomalies
-    for col in numeric_cols:
-        if col in df.columns and pd.api.types.is_numeric_dtype(df[col]):
-            z_scores = np.abs((df[col] - df[col].mean()) / df[col].std())
-            outliers = (z_scores > 3).sum()
-            if outliers > 0:
-                issues["info"].append(
-                    f"Column '{col}' has {outliers} statistical outliers (z>3)"
-                )
-
-    # 7. Row count validation
-    if len(df) < 30:
-        issues["warnings"].append(
-            f"Dataset has only {len(df)} rows - expected ~34 provinces"
-        )
-    elif len(df) > 40:
-        issues["warnings"].append(f"Dataset has {len(df)} rows - more than expected")
+    # 5. Row count validation
+    if len(df) < 10:
+        issues["warnings"].append(f"Dataset seems too small ({len(df)} rows)")
 
     return issues
 
@@ -584,18 +592,18 @@ def rotate_api_key(key_name, new_key_value):
 
 
 def list_artifacts():
-    """List all available artifacts"""
+    """List all available artifacts from Shared Volume"""
     artifacts = []
 
     if ARTIFACTS_DIR.exists():
-        for file in ARTIFACTS_DIR.iterdir():
+        for file in ARTIFACTS_DIR.glob("*"):
             if file.is_file():
                 artifacts.append(
                     {
                         "name": file.name,
                         "size": file.stat().st_size,
                         "modified": datetime.fromtimestamp(file.stat().st_mtime),
-                        "path": file,
+                        "path": str(file),
                     }
                 )
 
@@ -607,8 +615,11 @@ def load_cluster_comparison():
     metadata_path = ARTIFACTS_DIR / "cluster_metadata.json"
 
     if metadata_path.exists():
-        with open(metadata_path, "r") as f:
-            return json.load(f)
+        try:
+            with open(metadata_path, "r") as f:
+                return json.load(f)
+        except:
+            return None
     return None
 
 
@@ -618,7 +629,7 @@ def load_cluster_comparison():
 st.markdown(
     f"""
 <div class='admin-header'>
-    <h1>⚙️ Admin Control Panel - Data Management</h1>
+    <h1>⚙️ Admin Dashboard - Data and Pipeline Management</h1>
     <p>👤 User: {st.session_state.user} | 🕐 Login: {st.session_state.login_time.strftime('%H:%M:%S')}</p>
 </div>
 """,
@@ -704,219 +715,151 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
 )
 
 # ==============================================================================
-# TAB 1: DATA UPLOAD & VALIDATION
+# TAB 1: DATA UPLOAD & VALIDATION (REVISED)
 # ==============================================================================
 with tab1:
-    st.subheader("📥 Data Upload & Validation")
+    st.subheader("📥 Data Upload & Synchronization")
 
     st.markdown(
         """
-    <div class='info-box'>
-        <strong>ℹ️ Upload Instructions:</strong><br>
-        • Supported format: CSV with UTF-8 encoding<br>
-        • Required columns: provinsi, nama_provinsi<br>
-        • File will be validated automatically before saving<br>
-        • Previous version will be backed up automatically
-    </div>
-    """,
+        <div class='info-box'>
+            <strong>ℹ️ Workflow Update Data:</strong><br>
+            1. <strong>Upload CSV:</strong> File akan divalidasi dan disimpan ke server.<br>
+            2. <strong>Update Database:</strong> Tekan tombol 'Update Database' untuk menjalankan pipeline seeding ke PostgreSQL.<br>
+            3. <strong>Retrain Model:</strong> Setelah database update, pindah ke Tab Pipeline Control untuk melatih ulang model.
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
-    # Single File Upload
-    st.markdown("#### Single File Upload")
+    # 1. Single File Upload
+    st.markdown("#### 📘 Upload CSV File")
     uploaded_file = st.file_uploader(
-        "Upload CSV file", type="csv", help="Select a CSV file to upload"
+        "Pilih file CSV terbaru", type="csv", help="Format: CSV UTF-8"
     )
 
     if uploaded_file is not None:
         try:
             df_new = pd.read_csv(uploaded_file)
 
-            # Preview & Stats
+            # Preview & Stats Container
             col_preview, col_stats = st.columns([2, 1])
-
             with col_preview:
                 st.markdown("##### 📊 Data Preview")
-                st.dataframe(df_new.head(10), use_container_width=True, height=300)
-
+                st.dataframe(df_new.head(5), use_container_width=True)
             with col_stats:
-                st.markdown("##### 📈 Quick Statistics")
-                st.metric("Total Rows", f"{len(df_new):,}")
-                st.metric("Total Columns", len(df_new.columns))
-                st.metric("Missing Values", df_new.isnull().sum().sum())
-                st.metric("File Size", f"{uploaded_file.size / 1024:.2f} KB")
+                st.markdown("##### 📈 Quick Stats")
+                st.write(f"**Rows:** {len(df_new):,}")
+                st.write(f"**Cols:** {len(df_new.columns)}")
+                if "Provinsi" in df_new.columns:
+                    st.success("✅ Kolom 'Provinsi' ditemukan")
+                else:
+                    st.error("❌ Kolom 'Provinsi' hilang!")
 
-            # Data Validation
-            st.markdown("---")
-            st.markdown("#### 🔍 Validation Results")
-
+            # Validation Logic
             issues = validate_dataframe(df_new)
 
-            # Display validation results
-            col_val1, col_val2, col_val3 = st.columns(3)
+            # Tampilkan Error/Warning jika ada
+            if issues["errors"]:
+                for err in issues["errors"]:
+                    st.error(err)
 
-            with col_val1:
-                if issues["errors"]:
-                    st.markdown(
-                        f"""
-                    <div class='validation-box validation-error'>
-                        <strong style='color: #EF4444;'>❌ Errors ({len(issues['errors'])})</strong>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
-                    for err in issues["errors"]:
-                        st.error(err)
-                else:
-                    st.markdown(
-                        """
-                    <div class='validation-box validation-success'>
-                        <strong style='color: #10B981;'>✅ No Errors</strong>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
-
-            with col_val2:
-                if issues["warnings"]:
-                    st.markdown(
-                        f"""
-                    <div class='validation-box validation-warning'>
-                        <strong style='color: #F59E0B;'>⚠️ Warnings ({len(issues['warnings'])})</strong>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
-                    for warn in issues["warnings"]:
-                        st.warning(warn)
-                else:
-                    st.markdown(
-                        """
-                    <div class='validation-box validation-success'>
-                        <strong style='color: #10B981;'>✅ No Warnings</strong>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
-
-            with col_val3:
-                if issues["info"]:
-                    st.markdown(
-                        f"""
-                    <div class='validation-box'>
-                        <strong style='color: #3B82F6;'>ℹ️ Info ({len(issues['info'])})</strong>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
-                    for info in issues["info"]:
-                        st.info(info)
-                else:
-                    st.markdown(
-                        """
-                    <div class='validation-box validation-success'>
-                        <strong style='color: #10B981;'>✅ All Good</strong>
-                    </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
-
-            # Save Decision
-            st.markdown("---")
+            # Logic Tombol Save
+            st.divider()
             can_save = len(issues["errors"]) == 0
 
             if can_save:
-                st.markdown(
-                    """
-                <div class='success-box'>
-                    <strong style='color: #10B981;'>✅ Data Valid</strong><br>
-                    <span style='color: #D1D5DB;'>File is ready to be saved to warehouse</span>
-                </div>
-                """,
-                    unsafe_allow_html=True,
-                )
                 col_btn1, col_btn2 = st.columns(2)
 
+                # TOMBOL 1: HANYA SAVE CSV
                 with col_btn1:
                     if st.button(
-                        "💾 Save to Warehouse",
+                        "💾 1. Save CSV to Server",
                         type="primary",
                         use_container_width=True,
                     ):
                         try:
-                            # Save file
+                            # Save file ke Shared Volume
                             df_new.to_csv(TARGET_FILE, index=False)
 
-                            # Calculate hash
+                            # Log Versioning
                             file_hash = get_file_hash(TARGET_FILE)
-
-                            # Save version
                             version = save_version_metadata(
                                 uploaded_file.name,
                                 st.session_state.user,
                                 {"rows": len(df_new), "columns": len(df_new.columns)},
                                 file_hash,
                             )
-
-                            st.success(
-                                f"✅ Data saved successfully as version v{version}!"
-                            )
-                            st.balloons()
+                            st.success(f"✅ File tersimpan di Server (v{version})")
+                            st.info(f"Path: `{TARGET_FILE}`")
 
                         except Exception as e:
-                            st.error(f"❌ Save failed: {e}")
+                            st.error(f"Gagal menyimpan: {e}")
 
+                # TOMBOL 2: TRIGGER PIPELINE SEEDING (Sesuai Endpoint Anda)
                 with col_btn2:
                     if st.button(
-                        "💾 Save & Trigger Pipeline",
+                        "🚀 Update Database (Run Seeding)",
                         type="secondary",
                         use_container_width=True,
                     ):
-                        try:
-                            # Save file
-                            df_new.to_csv(TARGET_FILE, index=False)
+                        with st.spinner(
+                            "Menjalankan Pipeline ETL (CSV -> Postgres)..."
+                        ):
+                            try:
+                                # KONFIGURASI API MAGE (SESUAI PERMINTAAN ANDA)
+                                # Gunakan nama service docker 'mage' bukan 'localhost' karena antar container
+                                MAGE_API_URL = "http://mage:6789/api/pipeline_schedules/3/api_trigger"
+                                MAGE_TOKEN = (
+                                    "de8a9d9750d34badb5d7fdea04519247"  # Token Anda
+                                )
 
-                            # Calculate hash
-                            file_hash = get_file_hash(TARGET_FILE)
+                                headers = {
+                                    "Content-Type": "application/json",
+                                    "Authorization": f"Bearer {MAGE_TOKEN}",
+                                }
 
-                            # Save version
-                            version = save_version_metadata(
-                                uploaded_file.name,
-                                st.session_state.user,
-                                {"rows": len(df_new), "columns": len(df_new.columns)},
-                                file_hash,
-                            )
+                                # Payload (Opsional, tapi bagus untuk logging di Mage)
+                                payload = {
+                                    "pipeline_run": {
+                                        "variables": {
+                                            "source": "admin_dashboard",
+                                            "action": "seeding_database",
+                                        }
+                                    }
+                                }
 
-                            st.success(f"✅ Data saved as version v{version}!")
+                                # Request ke Mage
+                                response = requests.post(
+                                    MAGE_API_URL,
+                                    headers=headers,
+                                    json=payload,
+                                    timeout=10,
+                                )
 
-                            # Trigger pipeline
-                            st.info("🚀 Triggering pipeline...")
-                            res = trigger_pipeline(
-                                {"triggered_by": st.session_state.user}
-                            )
+                                if response.status_code == 200:
+                                    run_data = response.json()
+                                    run_id = run_data.get("pipeline_run", {}).get(
+                                        "id", "Unknown"
+                                    )
+                                    st.success(f"✅ Pipeline Berjalan! Run ID: {run_id}")
+                                    st.caption(
+                                        "Cek status detail di Tab 'Pipeline Control' atau Mage UI."
+                                    )
+                                    st.balloons()
+                                else:
+                                    st.error(f"❌ Gagal Trigger: {response.status_code}")
+                                    st.code(response.text)
 
-                            if res and res.status_code == 200:
-                                st.success("✅ Pipeline triggered successfully!")
-                                st.balloons()
-                            else:
-                                st.error("❌ Pipeline trigger failed!")
-
-                        except Exception as e:
-                            st.error(f"❌ Operation failed: {e}")
+                            except Exception as e:
+                                st.error(f"❌ Koneksi Error: {str(e)}")
+                                st.info("Pastikan container Mage berjalan.")
 
             else:
-                st.markdown(
-                    """
-                <div class='validation-box validation-error'>
-                    <strong style='color: #EF4444;'>🚫 Cannot Save</strong><br>
-                    <span style='color: #D1D5DB;'>Please fix all errors before saving</span>
-                </div>
-                """,
-                    unsafe_allow_html=True,
-                )
+                st.error("🚫 Perbaiki error validasi di atas sebelum menyimpan.")
 
         except Exception as e:
-            st.error(f"❌ Failed to read CSV: {e}")
+            st.error(f"Error membaca file: {e}")
 
     # Multi-File Upload
     st.markdown("---")
@@ -946,7 +889,7 @@ with tab1:
                     if len(issues["errors"]) == 0:
                         # Save with incremental naming
                         output_name = f"batch_{idx+1}_{file.name}"
-                        output_path = DATA_DIR / output_name
+                        output_path = DATA_RAW_DIR / output_name
                         df.to_csv(output_path, index=False)
 
                         st.success(f"✅ {file.name} → Saved")
@@ -1030,86 +973,98 @@ with tab2:
         if st.button(
             "▶️ Trigger Pipeline Now", type="primary", use_container_width=True
         ):
-            with st.status("Executing Pipeline...", expanded=True) as status:
+            with st.status("🚀 Starting Pipeline Execution...", expanded=True) as status:
                 st.write("📡 Connecting to Mage API...")
 
+                # 1. Trigger Pipeline
                 variables = {
                     "triggered_by": st.session_state.user,
                     "trigger_time": datetime.now().isoformat(),
                     "reason": trigger_reason or "Manual trigger",
+                    "overwrite_db": True,
                 }
 
                 res = trigger_pipeline(variables)
 
                 if res and res.status_code == 200:
-                    st.write("✅ Pipeline request accepted!")
-
                     run_data = res.json()
                     run_id = run_data.get("pipeline_run", {}).get("id")
 
                     if run_id:
-                        st.write(f"🆔 Run ID: `{run_id}`")
+                        st.write(f"✅ Pipeline Triggered! Run ID: `{run_id}`")
+                        save_pipeline_log(run_id, "triggered", variables)
 
-                        # Save log
-                        save_pipeline_log(
-                            run_id, "triggered", {"user": st.session_state.user}
-                        )
-
-                        # Monitor progress
-                        st.write("📊 Monitoring progress...")
-
+                        # 2. Polling Loop with Timeout
+                        st.write("⏳ Waiting for completion (Timeout: 300s)...")
                         progress_bar = st.progress(0)
-                        status_text = st.empty()
 
-                        for i in range(60):  # Max 5 minutes
+                        max_retries = 60  # 5 minutes timeout
+                        is_completed = False
+
+                        for i in range(max_retries):
                             time.sleep(5)
 
-                            pipe_status = get_pipeline_status(run_id)
-
-                            if pipe_status:
-                                state = pipe_status.get("status", "unknown")
-                                progress = min((i / 60) * 100, 95)
-
-                                progress_bar.progress(int(progress))
-                                status_text.markdown(f"**Status:** `{state.upper()}`")
-
-                                if state == "completed":
-                                    progress_bar.progress(100)
-                                    status.update(
-                                        label="✅ Pipeline Completed!",
-                                        state="complete",
-                                    )
-                                    st.balloons()
-
-                                    # Save log
-                                    save_pipeline_log(
-                                        run_id, "completed", {"duration": i * 5}
-                                    )
-                                    break
-
-                                elif state == "failed":
-                                    status.update(
-                                        label="❌ Pipeline Failed", state="error"
-                                    )
-
-                                    # Save log
-                                    save_pipeline_log(
-                                        run_id, "failed", {"error": "Pipeline failed"}
-                                    )
-                                    break
-                            else:
-                                status.update(
-                                    label="⏱️ Monitoring timeout (still running)",
-                                    state="running",
+                            try:
+                                status_res = requests.get(
+                                    f"{MAGE_HOST}/api/pipeline_runs/{run_id}",
+                                    headers={
+                                        "Authorization": f"Bearer {TRIGGER_TOKEN}"
+                                    },
+                                    timeout=5,
                                 )
 
-                    else:
-                        st.warning("⚠️ Could not retrieve Run ID")
+                                if status_res.status_code == 200:
+                                    current_status = (
+                                        status_res.json()
+                                        .get("pipeline_run", {})
+                                        .get("status")
+                                    )
+                                    st.write(
+                                        f"🔹 Status: **{current_status}** (Time: {i*5}s)"
+                                    )
 
+                                    # Fake progress for UX
+                                    progress_bar.progress(min((i + 1) * 2, 95))
+
+                                    if current_status == "completed":
+                                        progress_bar.progress(100)
+                                        status.update(
+                                            label="✅ Pipeline Success!",
+                                            state="complete",
+                                        )
+                                        st.success("Pipeline finished! Data updated.")
+                                        st.balloons()
+                                        is_completed = True
+                                        save_pipeline_log(
+                                            run_id, "completed", {"duration": i * 5}
+                                        )
+                                        time.sleep(2)
+                                        st.rerun()
+                                        break
+
+                                    elif current_status in ["failed", "cancelled"]:
+                                        status.update(
+                                            label="❌ Pipeline Failed", state="error"
+                                        )
+                                        st.error("Pipeline execution failed.")
+                                        save_pipeline_log(
+                                            run_id,
+                                            "failed",
+                                            {"final_status": current_status},
+                                        )
+                                        is_completed = True
+                                        break
+                            except Exception as e:
+                                st.warning(f"⚠️ Connection glitch: {str(e)}")
+
+                        if not is_completed:
+                            status.update(label="⏱️ Timeout", state="error")
+                            st.error("Pipeline timed out. Check Mage UI.")
+                    else:
+                        status.update(label="❌ No Run ID", state="error")
                 else:
-                    error_msg = res.text if res else "Connection failed"
-                    st.error(f"❌ Trigger failed: {error_msg}")
-                    status.update(label="❌ Failed to trigger", state="error")
+                    status.update(label="❌ Trigger Failed", state="error")
+                    st.error(f"API Error: {res.status_code if res else 'No Response'}")
 
         st.markdown("---")
 
@@ -1578,7 +1533,9 @@ with tab5:
                         st.markdown(f"**Upper Bound:** {upper_bound:.2f}")
 
                         st.dataframe(
-                            outliers[["provinsi", selected_col]].head(10),
+                            outliers[["Provinsi", selected_col]].head(10)
+                            if "Provinsi" in df.columns
+                            else outliers.head(10),
                             use_container_width=True,
                         )
                     else:
@@ -1792,3 +1749,44 @@ with tab7:
                 )
     else:
         st.info("📭 No artifacts found. Run the pipeline to generate outputs.")
+
+# ==============================================================================
+# FOOTER
+# ==============================================================================
+st.divider()
+footer_cols = st.columns([2, 1, 1])
+with footer_cols[0]:
+    st.markdown(
+        """
+        <div style='color: #6B7280; font-size: 0.875rem; line-height: 1.6;'>
+            <strong style='color: #9CA3AF; display: block; margin-bottom: 0.5rem;'>Executive Dashboard for Kurikulum AI</strong>
+            Data Sources: Portal Data Pendidikan<br>
+            Last Updated: December 2025 | Real-time Sync Enabled
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with footer_cols[1]:
+    st.markdown(
+        """
+        <div style='color: #6B7280; font-size: 0.875rem; text-align: center; line-height: 1.6;'>
+            <strong style='color: #9CA3AF; display: block; margin-bottom: 0.5rem;'>Powered by</strong>
+            Streamlit • Plotly • ML Flow • FastAPI • Mage AI
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+with footer_cols[2]:
+    st.markdown(
+        """
+        <div style='color: #6B7280; font-size: 0.875rem; text-align: right; line-height: 1.6;'>
+            <strong style='color: #9CA3AF; display: block; margin-bottom: 0.5rem;'>Support</strong>
+            📧 rynanda1202@gmail.com<br>
+            🌐 @thenamesagastya
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+st.caption(
+    "© 2025 Andiar Rinanda Agastya. Built with ❤️ for Machine Learning Technology Final Project"
+)

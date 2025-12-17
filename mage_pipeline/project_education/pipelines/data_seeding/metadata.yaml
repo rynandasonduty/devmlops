@@ -1,39 +1,39 @@
 blocks:
-- all_upstream_blocks_executed: true
-  color: null
-  configuration:
-    file_path: data_loaders/loaddata.py
-    file_source:
-      path: data_loaders/loaddata.py
-  downstream_blocks:
-  - seeddata
-  executor_config: null
-  executor_type: local_python
-  has_callback: false
-  language: python
-  name: loaddata
-  retry_config: null
-  status: executed
-  timeout: null
-  type: data_loader
-  upstream_blocks: []
-  uuid: loaddata
-- all_upstream_blocks_executed: true
-  color: null
-  configuration: {}
-  downstream_blocks: []
-  executor_config: null
-  executor_type: local_python
-  has_callback: false
-  language: python
-  name: seeddata
-  retry_config: null
-  status: executed
-  timeout: null
-  type: data_exporter
-  upstream_blocks:
-  - loaddata
-  uuid: seeddata
+  - all_upstream_blocks_executed: true
+    color: null
+    configuration:
+      file_path: data_loaders/loaddata.py
+      file_source:
+        path: data_loaders/loaddata.py
+    downstream_blocks:
+      - seeddata
+    executor_config: null
+    executor_type: local_python
+    has_callback: false
+    language: python
+    name: loaddata
+    retry_config: null
+    status: updated
+    timeout: null
+    type: data_loader
+    upstream_blocks: []
+    uuid: loaddata
+  - all_upstream_blocks_executed: false
+    color: null
+    configuration: {}
+    downstream_blocks: []
+    executor_config: null
+    executor_type: local_python
+    has_callback: false
+    language: python
+    name: seeddata
+    retry_config: null
+    status: executed
+    timeout: null
+    type: data_exporter
+    upstream_blocks:
+      - loaddata
+    uuid: seeddata
 cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}

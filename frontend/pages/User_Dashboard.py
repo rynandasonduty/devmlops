@@ -7,6 +7,13 @@ import os
 from datetime import datetime
 from PIL import Image
 
+# --- IMPORTS FOR MODEL LAB ---
+import mlflow
+import requests
+import time
+
+# -----------------------------
+
 COLOR_PALETTE = {
     "success": "#10B981",
     "warning": "#F59E0B",
@@ -20,8 +27,8 @@ COLOR_PALETTE = {
 # 1. PAGE CONFIGURATION & ENHANCED STYLING
 # ==============================================================================
 st.set_page_config(
-    page_title="Executive Dashboard: Kesiapan Pendidikan AI",
-    page_icon="🇮🇩",
+    page_title="User Dashboard",
+    page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -31,26 +38,38 @@ st.markdown(
     """
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
     .stApp {
         background: linear-gradient(135deg, #0A0E27 0%, #1a1f3a 50%, #0f1419 100%);
         font-family: 'Inter', sans-serif;
     }
+
+    /* --- Header Spacing Fix --- */
+    .block-container {
+        padding-top: 3rem !important; /* Tambah padding atas agar tidak mepet */
+        padding-bottom: 2rem !important;
+        max-width: 100%;
+    }
+
     /* Improve focus states for keyboard navigation */
-button:focus, .stSelectbox:focus {
-    outline: 2px solid #00D9FF !important;
-    outline-offset: 2px;
-}
+    button:focus, .stSelectbox:focus {
+        outline: 2px solid #00D9FF !important;
+        outline-offset: 2px;
+    }
+
     /* Typography Hierarchy */
     h1 {
         background: linear-gradient(135deg, #00D9FF 0%, #A855F7 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 700 !important;
-        font-size: 2.5rem !important;
+        font-size: 2.8rem !important;
         letter-spacing: -0.02em;
         line-height: 1.2 !important;
-        margin-bottom: 0.5rem !important;
+        margin-bottom: 1rem !important;
+        padding-top: 1rem;
     }
+
     h2 {
         color: #F3F4F6 !important;
         font-weight: 600 !important;
@@ -60,19 +79,7 @@ button:focus, .stSelectbox:focus {
         position: relative;
         padding-bottom: 0.5rem;
     }
-    h2:first-of-type {
-    margin-top: 0.25rem !important;
-    }
-    h2:after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 60px;
-        height: 3px;
-        background: linear-gradient(90deg, #00D9FF 0%, #A855F7 100%);
-        border-radius: 2px;
-    }
+
     h3 {
         color: #E5E7EB !important;
         font-weight: 600 !important;
@@ -80,25 +87,19 @@ button:focus, .stSelectbox:focus {
         margin-bottom: 0.75rem !important;
         margin-top: 0.5rem !important;
     }
+
     h4 {
         color: #D1D5DB !important;
         font-weight: 600 !important;
         font-size: 1.1rem !important;
     }
+
     p, li {
         color: #D1D5DB !important;
         font-size: 0.95rem;
         line-height: 1.6;
     }
-    /* Consistent Section Spacing */
-    .element-container {
-        margin-bottom: 0.75rem !important;
-    }
-    .block-container {
-    padding-top: 0.5rem !important;
-    padding-bottom: 1rem !important;
-    max-width: 100%;
-    }
+
     /* Enhanced Metric Cards */
     div[data-testid="metric-container"] {
         background: linear-gradient(135deg, rgba(30, 35, 47, 0.95) 0%, rgba(26, 31, 58, 0.9) 100%);
@@ -129,10 +130,8 @@ button:focus, .stSelectbox:focus {
         font-size: 2rem !important;
         font-weight: 700 !important;
     }
-    div[data-testid="metric-container"] [data-testid="stMetricDelta"] {
-        font-size: 0.875rem !important;
-    }
-    /* Improved Insight Box */
+
+    /* Info/Insight Boxes */
     .insight-box {
         background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(5, 150, 105, 0.1) 100%);
         border: 1px solid rgba(16, 185, 129, 0.3);
@@ -143,40 +142,6 @@ button:focus, .stSelectbox:focus {
         box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
         backdrop-filter: blur(10px);
     }
-    .insight-box-header {
-        color: #10B981 !important;
-        font-size: 1rem !important;
-        font-weight: 600 !important;
-        margin-bottom: 0.75rem !important;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    .insight-box ul {
-        margin: 0 !important;
-        padding-left: 1.5rem !important;
-        list-style: none;
-    }
-    .insight-box li {
-        color: #D1D5DB !important;
-        font-size: 0.9rem !important;
-        line-height: 1.6 !important;
-        margin-bottom: 0.4rem !important;
-        position: relative;
-        padding-left: 1.5rem;
-    }
-    .insight-box li:before {
-        content: "→";
-        position: absolute;
-        left: 0;
-        color: #10B981;
-        font-weight: 700;
-    }
-    .insight-box strong {
-        color: #10B981 !important;
-        font-weight: 600 !important;
-    }
-    /* Info Box Variants */
     .info-box {
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(37, 99, 235, 0.1) 100%);
         border: 1px solid rgba(59, 130, 246, 0.3);
@@ -186,28 +151,6 @@ button:focus, .stSelectbox:focus {
         margin: 1rem 0;
         backdrop-filter: blur(10px);
     }
-    .info-box-header {
-        color: #60A5FA !important;
-        font-size: 1rem !important;
-        font-weight: 600 !important;
-        margin-bottom: 0.5rem !important;
-    }
-    .info-box p {
-        color: #D1D5DB !important;
-        font-size: 0.9rem !important;
-        line-height: 1.6 !important;
-        margin: 0 !important;
-    }
-    /* Warning Box */
-    .warning-box {
-        background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.1) 100%);
-        border: 1px solid rgba(245, 158, 11, 0.3);
-        border-left: 4px solid #F59E0B;
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
-        margin: 1rem 0;
-    }
-    /* Section Cards */
     .section-card {
         background: rgba(30, 35, 47, 0.7);
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -216,7 +159,8 @@ button:focus, .stSelectbox:focus {
         margin: 1rem 0;
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
-    /* Enhanced Tabs */
+
+    /* Tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 0.5rem;
         background: rgba(30, 35, 47, 0.5);
@@ -233,70 +177,33 @@ button:focus, .stSelectbox:focus {
         transition: all 0.3s ease;
         font-size: 0.95rem;
     }
-    .stTabs [data-baseweb="tab"]:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: #E5E7EB;
-    }
     .stTabs [aria-selected="true"] {
         background: linear-gradient(135deg, #00D9FF 0%, #A855F7 100%);
         color: white !important;
         font-weight: 600;
     }
-    /* Enhanced Divider */
+
+    /* Divider */
     hr {
         margin: 2rem 0 !important;
         border: none;
         height: 2px;
-        background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(0, 217, 255, 0.3) 20%,
-            rgba(168, 85, 247, 0.3) 80%,
-            transparent 100%);
+        background: linear-gradient(90deg, transparent 0%, rgba(0, 217, 255, 0.3) 20%, rgba(168, 85, 247, 0.3) 80%, transparent 100%);
     }
-    /* Dataframe Styling */
-    .stDataFrame {
-        border-radius: 12px;
-        overflow: hidden;
-    }
-    /* Progress Bar */
-    .stProgress > div > div > div {
-        background: linear-gradient(90deg, #10B981 0%, #00D9FF 100%);
-    }
-    /* Chart Text */
-    .js-plotly-plot .plotly text {
-        font-size: 14px !important;
-        font-family: 'Inter', sans-serif !important;
-    }
-    /* Expander */
-    .streamlit-expanderHeader {
-        background: rgba(30, 35, 47, 0.6) !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-    }
-    /* Better spacing for columns */
-    [data-testid="column"] {
-        padding: 0 0.75rem;
-    }
-    [data-testid="column"]:first-child {
-        padding-left: 0;
-    }
-    [data-testid="column"]:last-child {
-        padding-right: 0;
-    }
+
     /* Subtitle styling */
     .subtitle {
-    color: #9CA3AF !important;
-    font-size: 1rem !important;
-    font-weight: 400 !important;
-    margin-top: 0.25rem !important;
-    margin-bottom: 0.75rem !important;
-}
-
-    /* Image styling */
-    .stImage {
-        border-radius: 12px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #9CA3AF !important;
+        font-size: 1.1rem !important;
+        font-weight: 400 !important;
+        margin-top: 0.5rem !important;
+        margin-bottom: 1rem !important;
+        line-height: 1.5 !important;
+    }
+    /* Sidebar Styling - Konsisten */
+    section[data-testid="stSidebar"] {
+        background-color: rgba(10, 14, 39, 0.95);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
 </style>
 """,
@@ -459,7 +366,7 @@ def load_and_prep_data():
 
     # 7. Province Mapping for GeoJSON compatibility
     MAPPING_PROVINSI = {
-        "aceh": "ACEH",
+        "aceh": "DI. ACEH",
         "sumatera utara": "SUMATERA UTARA",
         "sumatera barat": "SUMATERA BARAT",
         "riau": "RIAU",
@@ -467,8 +374,8 @@ def load_and_prep_data():
         "sumatera selatan": "SUMATERA SELATAN",
         "bengkulu": "BENGKULU",
         "lampung": "LAMPUNG",
-        "kepulauan bangka belitung": "KEPULAUAN BANGKA BELITUNG",
-        "bangka belitung": "KEPULAUAN BANGKA BELITUNG",
+        "kepulauan bangka belitung": "BANGKA BELITUNG",
+        "bangka belitung": "BANGKA BELITUNG",
         "kepulauan riau": "KEPULAUAN RIAU",
         "dki jakarta": "DAERAH KHUSUS IBUKOTA JAKARTA",
         "jakarta": "DAERAH KHUSUS IBUKOTA JAKARTA",
@@ -496,7 +403,7 @@ def load_and_prep_data():
         "sulawesi barat": "SULAWESI BARAT",
         "maluku": "MALUKU",
         "maluku utara": "MALUKU UTARA",
-        "papua barat": "PAPUA BARAT",
+        "papua barat daya": "PAPUA BARAT",
         "papua": "PAPUA",
         "papua tengah": "PAPUA",
         "papua pegunungan": "PAPUA",
@@ -556,24 +463,51 @@ else:
     }
 
 # ==============================================================================
+# STANDARD SIDEBAR (Tambahkan ini di Dashboard_Publik.py dan Data_Management.py)
+# ==============================================================================
+with st.sidebar:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 🛠️ External Tools")
+    st.link_button(
+        "📦 MLflow Registry",
+        "http://localhost:5000",
+        help="Monitor eksperimen dan model versioning",
+    )
+    st.link_button(
+        "📈 Grafana Monitor",
+        "http://localhost:3000",
+        help="Dashboard monitoring infrastruktur & drift",
+    )
+
+    st.divider()
+    st.caption("© Andiar Rinanda Agastya")
+
+# ==============================================================================
 # HEADER
 # ==============================================================================
 col_title, col_logo = st.columns([5, 1])
 with col_title:
-    st.title("🇮🇩 Executive Dashboard: Kesiapan Pendidikan AI")
+    st.title("User Dashboard: Comprehensive Analysis & Visualization")
     st.markdown(
-        "<p class='subtitle'><strong>Monitor Strategis</strong> · Infrastruktur Digital & SDM Nasional</p>",
+        """
+        <p class='subtitle'>
+            <strong>Monitor Strategis · Infrastruktur Digital & SDM Nasional</strong><br>
+            Platform Decision Support System (DSS) berbasis Data Science untuk memetakan, menganalisis,
+            dan memprediksi kesiapan ekosistem pendidikan di seluruh provinsi Indonesia dalam menghadapi era Artificial Intelligence.
+        </p>
+        """,
         unsafe_allow_html=True,
     )
+
 with col_logo:
     st.markdown(
-        "<div style='text-align: right; padding: 20px 0;'><span style='font-size: 4rem;'>📊</span></div>",
+        "<div style='text-align: right; padding-top: 20px;'><span style='font-size: 4rem;'>📊</span></div>",
         unsafe_allow_html=True,
     )
 st.markdown("<div style='margin: 0.5rem 0;'><hr></div>", unsafe_allow_html=True)
 
 # ==============================================================================
-# MODEL & PIPELINE INFO
+# MODEL & PIPELINE INFO (SUMMARY)
 # ==============================================================================
 if cluster_metadata:
     with st.expander("🤖 ML Model Information (from Mage AI Pipeline)", expanded=False):
@@ -703,6 +637,33 @@ col_map, col_pie = st.columns([2.5, 1], gap="medium")
 with col_map:
     st.subheader("Peta Sebaran Kesiapan Nasional")
     if geojson_indo:
+        # ---- BAGIAN B: DETEKSI MISMATCH GEOJSON ----
+        valid_geo_names = [
+            f["properties"]["Propinsi"] for f in geojson_indo["features"]
+        ]
+        valid_geo_set = set(valid_geo_names)
+
+        # Cari provinsi di DataFrame yang tidak ada di list GeoJSON (berdasarkan geo_key)
+        mismatched_df = df[~df["geo_key"].isin(valid_geo_set)]
+        mismatched_provs = mismatched_df["display_prov"].unique()
+
+        if len(mismatched_provs) > 0:
+            st.warning(
+                f"⚠️ {len(mismatched_provs)} provinsi tidak terpetakan (Cek Data)"
+            )
+            with st.expander("🕵️ Lihat Detail Debugging GeoJSON"):
+                dc1, dc2 = st.columns(2)
+                with dc1:
+                    st.write("**Nama di CSV (Gagal Match):**")
+                    st.write(mismatched_provs)
+                    st.caption(
+                        f"Key yang digunakan: {mismatched_df['geo_key'].unique()}"
+                    )
+                with dc2:
+                    st.write("**Nama Valid di GeoJSON:**")
+                    st.write(sorted(list(valid_geo_set)))
+        # ----------------------------------------------
+
         color_order = [
             "Rendah (Low)",
             "Sedang (Medium)",
@@ -1120,11 +1081,29 @@ with tab_distribution:
 
 with tab_ranking:
     st.subheader("🏆 Provincial Ranking System")
+
+    # ---- BAGIAN A: DYNAMIC WEIGHTS ----
+    with st.expander("⚙️ Konfigurasi Bobot & Preferensi", expanded=False):
+        cw1, cw2, cw3 = st.columns(3)
+        with cw1:
+            w_infra = st.slider("Bobot Infrastruktur", 0, 100, 40)
+        with cw2:
+            w_sdm = st.slider("Bobot Kualitas SDM", 0, 100, 35)
+        with cw3:
+            w_siswa = st.slider("Bobot Potensi Siswa", 0, 100, 25)
+
+    # Hitung total bobot dan normalisasi
+    total_bobot = w_infra + w_sdm + w_siswa
+    if total_bobot == 0:
+        total_bobot = 1  # Hindari pembagian dengan nol
+
     df["composite_score"] = (
-        df["indeks_infrastruktur"] * 0.4
-        + df["indeks_sdm"] * 0.35
-        + df["potensi_siswa"] * 0.25
+        df["indeks_infrastruktur"] * (w_infra / total_bobot)
+        + df["indeks_sdm"] * (w_sdm / total_bobot)
+        + df["potensi_siswa"] * (w_siswa / total_bobot)
     )
+    # -----------------------------------
+
     df["rank"] = df["composite_score"].rank(ascending=False).astype(int)
     col_rank1, col_rank2 = st.columns([1.5, 1], gap="medium")
     with col_rank1:
@@ -1161,14 +1140,16 @@ with tab_ranking:
         st.plotly_chart(fig_rank, use_container_width=True)
     with col_rank2:
         st.markdown("#### 🎯 Ranking Methodology")
+
+        # Update teks metodologi dengan f-string agar dinamis
         st.markdown(
-            """
+            f"""
         <div class='section-card' style='padding: 1rem;'>
             <p style='color: #D1D5DB; font-size: 0.9rem; line-height: 1.6;'>
             <strong style='color: #00D9FF;'>Composite Score Formula:</strong><br>
-            • Infrastruktur: <strong>40%</strong><br>
-            • SDM Quality: <strong>35%</strong><br>
-            • Student Potential: <strong>25%</strong>
+            • Infrastruktur: <strong>{w_infra/total_bobot*100:.1f}%</strong><br>
+            • SDM Quality: <strong>{w_sdm/total_bobot*100:.1f}%</strong><br>
+            • Student Potential: <strong>{w_siswa/total_bobot*100:.1f}%</strong>
             </p>
         </div>
         """,
@@ -2330,6 +2311,297 @@ with st.expander("🔍 View Complete Dataset", expanded=False):
         )
 
 # ==============================================================================
+# 8. MODEL LAB & OPERATIONS (NEW SECTION)
+# ==============================================================================
+st.divider()
+st.header("8. Model Lab and Operations")
+st.markdown(
+    """
+    <div class='section-card' style='margin-bottom: 2rem;'>
+        <h4 style='color: #A855F7; margin-top: 0;'>🛠️ Advanced Machine Learning Operations (MLOps)</h4>
+        <p>Area ini didedikasikan untuk eksperimen model, monitoring registry, dan simulasi data drift.</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# --- Subheader 1: Live Inference ---
+# --- Subheader 1: Live Inference ---
+st.subheader("8.1 Live Inference Playground")
+
+# --- ACTIVE MODEL METADATA CARD ---
+if cluster_metadata:
+    # Use existing loaded metadata
+    model_timestamp = cluster_metadata.get("timestamp", "N/A")
+    # If no timestamp in json, fallback to file modified time
+    if model_timestamp == "N/A" and MODEL_PATH and os.path.exists(MODEL_PATH):
+        try:
+            model_timestamp = datetime.fromtimestamp(
+                os.path.getmtime(MODEL_PATH)
+            ).strftime("%Y-%m-%d %H:%M:%S")
+        except:
+            pass
+
+    active_k = cluster_metadata.get("n_clusters", 3)
+    active_score = cluster_metadata.get("silhouette_score", 0.0)
+
+    st.markdown(
+        f"""
+        <div style="background: rgba(0, 217, 255, 0.1); border: 1px solid rgba(0, 217, 255, 0.3); border-radius: 10px; padding: 15px;
+        margin-bottom: 20px; display: flex; justify-content: space-around; align-items: center;">
+            <div style="text-align: center;">
+                <span style="display: block; color: #9CA3AF; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Model Version (Time)</span>
+                <strong style="color: #F3F4F6; font-size: 1.1rem;">{model_timestamp}</strong>
+            </div>
+            <div style="height: 40px; border-left: 1px solid rgba(255,255,255,0.2);"></div>
+            <div style="text-align: center;">
+                <span style="display: block; color: #9CA3AF; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Algorithm</span>
+                <strong style="color: #00D9FF; font-size: 1.1rem;">K-Means</strong>
+            </div>
+            <div style="height: 40px; border-left: 1px solid rgba(255,255,255,0.2);"></div>
+            <div style="text-align: center;">
+                <span style="display: block; color: #9CA3AF; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Active Clusters</span>
+                <strong style="color: #A855F7; font-size: 1.1rem;">k={active_k}</strong>
+            </div>
+             <div style="height: 40px; border-left: 1px solid rgba(255,255,255,0.2);"></div>
+            <div style="text-align: center;">
+                <span style="display: block; color: #9CA3AF; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Silhouette Score</span>
+                <strong style="color: #10B981; font-size: 1.1rem;">{active_score:.3f}</strong>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+# ----------------------------------
+
+st.markdown(
+    "Uji model dengan data input manual untuk melihat prediksi klaster secara real-time."
+)
+
+with st.form("inference_form"):
+    st.markdown("### 📝 Input Features (Manual Entry)")
+
+    # Grid Layout for Inputs (3 Kolom)
+    c_infra, c_guru, c_siswa = st.columns(3, gap="medium")
+
+    with c_infra:
+        st.markdown("#### 📡 Infrastruktur Digital")
+        # Internet
+        p_inet_sd = st.slider("Internet SD (%)", 0, 100, 80)
+        p_inet_smp = st.slider("Internet SMP (%)", 0, 100, 85)
+        p_inet_sma = st.slider("Internet SMA (%)", 0, 100, 90)
+        st.markdown("---")
+        # Listrik (NEW)
+        p_listrik_sd = st.slider("Listrik SD (%)", 0, 100, 95)
+        p_listrik_smp = st.slider("Listrik SMP (%)", 0, 100, 98)
+        p_listrik_sma = st.slider("Listrik SMA (%)", 0, 100, 99)
+        st.markdown("---")
+        # Rasio PC
+        r_pc_sd = st.number_input("Rasio Siswa/PC (SD)", 1.0, 100.0, 30.0)
+        r_pc_smp = st.number_input("Rasio Siswa/PC (SMP)", 1.0, 100.0, 20.0)
+        r_pc_sma = st.number_input("Rasio Siswa/PC (SMA)", 1.0, 100.0, 15.0)
+
+    with c_guru:
+        st.markdown("#### 🎓 Kualitas & Rasio Guru")
+        # Sertifikasi
+        p_cert_sd = st.slider("Sertifikasi Guru SD (%)", 0, 100, 40)
+        p_cert_smp = st.slider("Sertifikasi Guru SMP (%)", 0, 100, 50)
+        p_cert_sma = st.slider("Sertifikasi Guru SMA (%)", 0, 100, 60)
+        st.markdown("---")
+        # Kualifikasi S1 (NEW)
+        p_s1_sd = st.slider("Guru S1 SD (%)", 0, 100, 85)
+        p_s1_smp = st.slider("Guru S1 SMP (%)", 0, 100, 90)
+        p_s1_sma = st.slider("Guru S1 SMA (%)", 0, 100, 95)
+        st.markdown("---")
+        # Rasio Guru
+        r_guru_sd = st.number_input("Rasio Siswa/Guru (SD)", 1.0, 100.0, 20.0)
+        r_guru_smp = st.number_input("Rasio Siswa/Guru (SMP)", 1.0, 100.0, 18.0)
+        r_guru_sma = st.number_input("Rasio Siswa/Guru (SMA)", 1.0, 100.0, 15.0)
+
+    with c_siswa:
+        st.markdown("#### 🧠 Potensi Siswa (AKM)")
+        p_lit = st.slider("Lulus Literasi (%)", 0, 100, 55)
+        p_num = st.slider("Lulus Numerasi (%)", 0, 100, 50)
+        st.markdown("---")
+        st.info(
+            "💡 **Tips:** Geser nilai parameter untuk melihat bagaimana klaster berubah secara dinamis."
+        )
+        st.caption(
+            "Klik tombol di bawah untuk mengirim data ke Backend Inference Service."
+        )
+
+    submitted = st.form_submit_button("⚡ Prediksi Klaster", use_container_width=True)
+
+if submitted:
+    # Construct Payload dengan URUTAN YANG BENAR (Sesuai CSV Training)
+    payload = {
+        # 1. Internet
+        "persen_sekolah_internet_sd": p_inet_sd,
+        "persen_sekolah_internet_smp": p_inet_smp,
+        "persen_sekolah_internet_sma": p_inet_sma,
+        # 2. Sertifikasi (Harus urutan ke-2!)
+        "persen_guru_sertifikasi_sd": p_cert_sd,
+        "persen_guru_sertifikasi_smp": p_cert_smp,
+        "persen_guru_sertifikasi_sma": p_cert_sma,
+        # 3. Rasio Guru
+        "rasio_siswa_guru_sd": r_guru_sd,
+        "rasio_siswa_guru_smp": r_guru_smp,
+        "rasio_siswa_guru_sma": r_guru_sma,
+        # 4. Rasio Komputer
+        "rasio_siswa_komputer_sd": r_pc_sd,
+        "rasio_siswa_komputer_smp": r_pc_smp,
+        "rasio_siswa_komputer_sma": r_pc_sma,
+        # 5. AKM
+        "persen_lulus_akm_literasi": p_lit,
+        "persen_lulus_akm_numerasi": p_num,
+        # 6. Listrik (Urutan Belakang)
+        "persen_sekolah_listrik_sd": p_listrik_sd,
+        "persen_sekolah_listrik_smp": p_listrik_smp,
+        "persen_sekolah_listrik_sma": p_listrik_sma,
+        # 7. Kualifikasi S1 (Urutan Terakhir)
+        "persen_guru_kualifikasi_s1_sd": p_s1_sd,
+        "persen_guru_kualifikasi_s1_smp": p_s1_smp,
+        "persen_guru_kualifikasi_s1_sma": p_s1_sma,
+    }
+
+    st.markdown("### 📊 Prediction Result")
+    with st.spinner("Mengirim data ke model inference..."):
+        try:
+            # Delay simulasi UX
+            time.sleep(0.5)
+
+            # Gunakan host 'backend' sesuai docker-compose network
+            response = requests.post(
+                "http://backend:8000/predict", json=payload, timeout=5
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                cluster_label = result.get("label", "Unknown")
+                cluster_id = result.get("cluster_id", -1)
+
+                # Visual Result Container
+                # Pastikan COLOR_MAP tersedia di global scope atau definisikan default
+                # (Asumsi COLOR_MAP sudah ada di awal file Dashboard_Publik.py)
+                color = COLOR_MAP.get(cluster_label, "#888")
+
+                res_col1, res_col2 = st.columns([1, 2])
+                with res_col1:
+                    st.markdown(
+                        f"""
+                        <div style="background-color: {color}25; padding: 25px; border-radius: 12px; border: 2px solid {color};
+                        text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center;">
+                            <h3 style="color: {color}; margin: 0; font-size: 1.8rem;">{cluster_label}</h3>
+                            <p style="margin-top: 5px; color: #ccc; font-weight: 500;">Cluster ID: {cluster_id}</p>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                with res_col2:
+                    st.success("✅ Prediksi Berhasil!")
+                    st.json(result)
+            else:
+                st.error(f"❌ API Error: {response.status_code}")
+                st.markdown(f"**Detail:** `{response.text}`")
+
+        except Exception as e:
+            st.error(f"❌ Connection Error: {str(e)}")
+            st.info(
+                "Pastikan container 'backend' berjalan dan dapat diakses di http://backend:8000"
+            )
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# --- Subheader 2: MLflow Registry ---
+st.subheader("8.2 MLflow Model Registry Monitor")
+
+try:
+    # Connect to MLflow
+    mlflow.set_tracking_uri("http://mlflow:5000")
+
+    # Get experiments
+    df_runs = mlflow.search_runs(experiment_names=["project_education_clustering"])
+
+    if not df_runs.empty:
+        # Select relevant columns for display
+        cols_to_show = [
+            "tags.mlflow.runName",
+            "metrics.silhouette_score",
+            "metrics.inertia",
+            "start_time",
+            "status",
+        ]
+
+        # Filter existing columns only
+        valid_cols = [c for c in cols_to_show if c in df_runs.columns]
+        df_display = df_runs[valid_cols].copy()
+
+        # Format display
+        st.dataframe(
+            df_display.style.highlight_max(
+                axis=0, subset=["metrics.silhouette_score"], color="#10B98130"
+            ),
+            use_container_width=True,
+        )
+    else:
+        st.info("Belum ada data eksperimen di MLflow.")
+
+except Exception as e:
+    st.warning("⚠️ MLflow Registry tidak terdeteksi atau connection refused.")
+    st.caption(f"Error details: {str(e)}")
+
+st.markdown("<br>", unsafe_allow_html=True)
+
+# --- Subheader 3: Drift Simulation ---
+st.subheader("8.3 Data Drift Simulation")
+
+st.info(
+    "ℹ️ **Fitur Simulasi:** Fitur ini akan memanipulasi data saat ini (misal: membuat infrastruktur menjadi 0 di semua daerah) "
+    "dan menyimpannya sebagai file baru untuk memicu alert pada sistem monitoring (Drift Detection Pipeline)."
+)
+
+col_drift_btn, col_drift_msg = st.columns([1, 3])
+
+with col_drift_btn:
+    drift_trigger = st.button("⚠️ Inject Anomaly & Save", type="primary")
+
+if drift_trigger:
+    if df is not None:
+        try:
+            # 1. Copy Dataframe
+            df_anomaly = df.copy()
+
+            # 2. Inject Anomaly (Extreme Case: Infrastructure Collapse)
+            col_target = "indeks_infrastruktur"
+            if col_target in df_anomaly.columns:
+                df_anomaly[col_target] = 0
+
+            # Inject juga ke kolom raw component jika ada
+            col_raw_infra = [c for c in df_anomaly.columns if "internet" in c]
+            for c in col_raw_infra:
+                df_anomaly[c] = 0
+
+            # 3. Define Path
+            # Lokasi ini harus accessible oleh Mage AI pipeline
+            save_path = "/app/mage_data_source/data/raw/data_drift_simulation.csv"
+
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+            # 4. Save
+            df_anomaly.to_csv(save_path, index=False)
+
+            st.success(f"✅ Data anomali berhasil disimpan di: `{save_path}`")
+            st.markdown(
+                "👉 **Next Step:** Silakan pergi ke Mage AI Pipeline dan jalankan pipeline menggunakan file ini untuk melihat Data Drift Alert."
+            )
+
+        except Exception as e:
+            st.error(f"❌ Gagal menyimpan data anomali: {str(e)}")
+    else:
+        st.error("Dataframe utama tidak tersedia.")
+
+# ==============================================================================
 # FOOTER
 # ==============================================================================
 st.divider()
@@ -2338,8 +2610,8 @@ with footer_cols[0]:
     st.markdown(
         """
         <div style='color: #6B7280; font-size: 0.875rem; line-height: 1.6;'>
-            <strong style='color: #9CA3AF; display: block; margin-bottom: 0.5rem;'>Executive Dashboard v2.1</strong>
-            Data Sources: Kemendikbud, BPS, Regional Analytics<br>
+            <strong style='color: #9CA3AF; display: block; margin-bottom: 0.5rem;'>Executive Dashboard for Kurikulum AI</strong>
+            Data Sources: Portal Data Pendidikan<br>
             Last Updated: December 2025 | Real-time Sync Enabled
         </div>
         """,
@@ -2350,7 +2622,7 @@ with footer_cols[1]:
         """
         <div style='color: #6B7280; font-size: 0.875rem; text-align: center; line-height: 1.6;'>
             <strong style='color: #9CA3AF; display: block; margin-bottom: 0.5rem;'>Powered by</strong>
-            Streamlit • Plotly • ML Pipeline
+            Streamlit • Plotly • ML Flow • FastAPI • Mage AI
         </div>
         """,
         unsafe_allow_html=True,
@@ -2360,10 +2632,12 @@ with footer_cols[2]:
         """
         <div style='color: #6B7280; font-size: 0.875rem; text-align: right; line-height: 1.6;'>
             <strong style='color: #9CA3AF; display: block; margin-bottom: 0.5rem;'>Support</strong>
-            📧 devmlops@edu.id<br>
-            🌐 dashboard.ai-education.id
+            📧 rynanda1202@gmail.com<br>
+            🌐 @thenamesagastya
         </div>
         """,
         unsafe_allow_html=True,
     )
-st.caption("© 2025 DevMLOps Education System. Built with ❤️ for Indonesian Education")
+st.caption(
+    "© 2025 Andiar Rinanda Agastya. Built with ❤️ for Machine Learning Technology Final Project"
+)
