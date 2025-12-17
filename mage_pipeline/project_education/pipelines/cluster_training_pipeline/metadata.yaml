@@ -113,7 +113,7 @@ blocks:
     upstream_blocks:
       - generate_drift_report
     uuid: train_kmeans_clustering
-  - all_upstream_blocks_executed: false
+  - all_upstream_blocks_executed: true
     color: purple
     configuration: {}
     downstream_blocks: []
