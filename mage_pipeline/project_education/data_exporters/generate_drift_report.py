@@ -1,13 +1,12 @@
 import pandas as pd
 import os
 import json
-import joblib
 
 from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset, DataQualityPreset
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
-if 'data_exporter' not in globals():
+if "data_exporter" not in globals():
     from mage_ai.data_preparation.decorators import data_exporter
 
 # --- KONFIGURASI PATH ---
@@ -18,7 +17,8 @@ MODEL_PATH = os.path.join(ARTIFACTS_DIR, "kmeans_model.pkl")
 
 # --- KONFIGURASI PROMETHEUS ---
 # Pastikan hostname 'pushgateway' sesuai dengan docker-compose service name
-PUSHGATEWAY_URL = "pushgateway:9091" 
+PUSHGATEWAY_URL = "pushgateway:9091"
+
 
 @data_exporter
 def export_data(df: pd.DataFrame, *args, **kwargs):
@@ -29,29 +29,28 @@ def export_data(df: pd.DataFrame, *args, **kwargs):
     2. Push Metrics ke Prometheus
     3. Conditional Logic: Stop pipeline jika tidak ada drift & model sudah ada.
     """
-    
+
     print("🚀 Memulai Analisis Drift & Quality Check...")
-    
+
     # 1. Split Data untuk Simulasi (Reference vs Current)
     # Di production, reference diambil dari training set sebelumnya.
     # Disini kita split 50:50 dari data yang masuk.
     mid_point = len(df) // 2
-    
+
     # Drop kolom non-fitur untuk analisis drift
-    cols_drop = [c for c in ["provinsi", "cluster_id", "cluster_label"] if c in df.columns]
-    
-    reference_data = df.iloc[:mid_point].drop(columns=cols_drop, errors='ignore')
-    current_data = df.iloc[mid_point:].drop(columns=cols_drop, errors='ignore')
+    cols_drop = [
+        c for c in ["provinsi", "cluster_id", "cluster_label"] if c in df.columns
+    ]
+
+    reference_data = df.iloc[:mid_point].drop(columns=cols_drop, errors="ignore")
+    current_data = df.iloc[mid_point:].drop(columns=cols_drop, errors="ignore")
 
     # 2. Generate Evidently Report
     # Kita pakai DataDriftPreset dan DataQualityPreset agar lengkap
-    report = Report(metrics=[
-        DataDriftPreset(), 
-        DataQualityPreset()
-    ])
-    
+    report = Report(metrics=[DataDriftPreset(), DataQualityPreset()])
+
     report.run(reference_data=reference_data, current_data=current_data)
-    
+
     # 3. Simpan Artifacts (HTML)
     os.makedirs(ARTIFACTS_DIR, exist_ok=True)
     report.save_html(REPORT_PATH)
@@ -59,7 +58,7 @@ def export_data(df: pd.DataFrame, *args, **kwargs):
 
     # 4. Ambil Metrik Drift (Parsing JSON)
     result_dict = report.as_dict()
-    
+
     try:
         # Mengambil metric Dataset Drift (True/False) dan Share (%)
         # Lokasi key bisa berbeda tergantung versi evidently, ini versi umum:
@@ -78,7 +77,7 @@ def export_data(df: pd.DataFrame, *args, **kwargs):
     audit_data = {
         "drift_detected": bool(dataset_drift),
         "drift_score": drift_share,
-        "timestamp": pd.Timestamp.now().isoformat()
+        "timestamp": pd.Timestamp.now().isoformat(),
     }
     with open(METRICS_PATH, "w") as f:
         json.dump(audit_data, f)
@@ -87,11 +86,19 @@ def export_data(df: pd.DataFrame, *args, **kwargs):
     try:
         registry = CollectorRegistry()
         # Gauge untuk Drift Score (0.0 - 1.0)
-        g_score = Gauge("evidently_data_drift_score", "Share of drifting features", registry=registry)
+        g_score = Gauge(
+            "evidently_data_drift_score",
+            "Share of drifting features",
+            registry=registry,
+        )
         g_score.set(drift_share)
-        
+
         # Gauge untuk Status Drift (1 = Drift, 0 = No Drift)
-        g_status = Gauge("evidently_data_drift_detected", "1 if drift detected, 0 otherwise", registry=registry)
+        g_status = Gauge(
+            "evidently_data_drift_detected",
+            "1 if drift detected, 0 otherwise",
+            registry=registry,
+        )
         g_status.set(1 if dataset_drift else 0)
 
         push_to_gateway(PUSHGATEWAY_URL, job="mage_drift_check", registry=registry)
@@ -100,20 +107,22 @@ def export_data(df: pd.DataFrame, *args, **kwargs):
         print(f"⚠️ Failed to push metrics (Check Pushgateway connection): {e}")
 
     # 6. CONDITIONAL LOGIC (CT Trigger)
-    
+
     # A. Cek Cold Start (Apakah model sudah ada?)
     if not os.path.exists(MODEL_PATH):
         print("⚡ COLD START: Model belum ada. Melanjutkan ke Training...")
-        return df # Lanjut ke blok selanjutnya
-    
+        return df  # Lanjut ke blok selanjutnya
+
     # B. Cek Drift
     if dataset_drift:
         print("🔄 DRIFT DETECTED: Data berubah signifikan. Melanjutkan ke Retraining...")
-        return df # Lanjut ke blok selanjutnya
-        
+        return df  # Lanjut ke blok selanjutnya
+
     # C. Jika Stabil & Model Ada -> STOP
-    print("🛑 STABLE: Data stabil & model sudah ada. Pipeline berhenti disini (Hemat Resource).")
-    
+    print(
+        "🛑 STABLE: Data stabil & model sudah ada. Pipeline berhenti disini (Hemat Resource)."
+    )
+
     # Kita raise Exception khusus agar Mage menandai blok ini "Failed" atau "Cancelled"
     # dan blok setelahnya (Training) TIDAK dijalankan.
     raise Exception("PIPELINE_STOPPED: No Retraining Needed")

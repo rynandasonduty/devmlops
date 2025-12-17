@@ -9,9 +9,10 @@ if "test" not in globals():
     from mage_ai.data_preparation.decorators import test
 
 # Setup Path Artefak (Shared Volume dengan FastAPI)
-ARTIFACTS_ROOT_DIR = "/home/src/artifacts" 
+ARTIFACTS_ROOT_DIR = "/home/src/artifacts"
 os.makedirs(ARTIFACTS_ROOT_DIR, exist_ok=True)
 SCALER_PATH = os.path.join(ARTIFACTS_ROOT_DIR, "standard_scaler.pkl")
+
 
 @transformer
 def transform_standardize(df: pd.DataFrame, *args, **kwargs):
@@ -25,14 +26,18 @@ def transform_standardize(df: pd.DataFrame, *args, **kwargs):
         if possible_ids:
             df.rename(columns={possible_ids[0]: "provinsi"}, inplace=True)
         else:
-            raise ValueError(f"Kolom 'provinsi' tidak ditemukan. Kolom ada: {df.columns.tolist()}")
+            raise ValueError(
+                f"Kolom 'provinsi' tidak ditemukan. Kolom ada: {df.columns.tolist()}"
+            )
 
     province_id = df["provinsi"]
     X = df.drop(columns=["provinsi"])
 
     # 3. Data Cleaning (Median Imputation untuk menangani NaN/Inf)
-    numeric_cols = X.select_dtypes(include=['number']).columns
-    X[numeric_cols] = X[numeric_cols].replace([float("inf"), float("-inf")], float("nan"))
+    numeric_cols = X.select_dtypes(include=["number"]).columns
+    X[numeric_cols] = X[numeric_cols].replace(
+        [float("inf"), float("-inf")], float("nan")
+    )
     X[numeric_cols] = X[numeric_cols].fillna(X[numeric_cols].median())
 
     # 4. Fit & Transform Scaler
@@ -48,6 +53,7 @@ def transform_standardize(df: pd.DataFrame, *args, **kwargs):
     df_scaled["provinsi"] = province_id.values
 
     return df_scaled
+
 
 @test
 def test_output(output, *args) -> None:

@@ -1533,9 +1533,11 @@ with tab5:
                         st.markdown(f"**Upper Bound:** {upper_bound:.2f}")
 
                         st.dataframe(
-                            outliers[["Provinsi", selected_col]].head(10)
-                            if "Provinsi" in df.columns
-                            else outliers.head(10),
+                            (
+                                outliers[["Provinsi", selected_col]].head(10)
+                                if "Provinsi" in df.columns
+                                else outliers.head(10)
+                            ),
                             use_container_width=True,
                         )
                     else:
