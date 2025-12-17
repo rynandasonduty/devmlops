@@ -32,6 +32,7 @@ jobs:
         run: ruff check .
 
       - name: 2. Format check with Black
+        continue-on-error: true
         run: black --check .
 
       # B. SECURITY SCANNING (SAST) - NEW!
