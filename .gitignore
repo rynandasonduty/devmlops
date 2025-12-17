@@ -18,3 +18,8 @@ mage_data/
 .vscode/
 .idea/
 .DS_Store
+
+# Ignore DVC cache
+.dvc/cache
+mage_pipeline/.dvc/cache
+**/.dvc/cache
