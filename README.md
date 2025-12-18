@@ -86,7 +86,7 @@ graph LR
 
 ---
 
-## 🏗️ System Architecture
+## 🗺️ System Architecture
 
 ```mermaid
 graph TB
@@ -170,7 +170,7 @@ graph TB
 
         subgraph ARTIFACTS["Model Artifacts"]
             ART1["<b>💾 kmeans_model.pkl</b>"]
-            ART2["<b>📐 standard_scaler.pkl</b>"]
+            ART2["<b>📏 standard_scaler.pkl</b>"]
             ART3["<b>📄 cluster_metadata.json</b>"]
         end
 
@@ -184,7 +184,7 @@ graph TB
     subgraph TRACK["<b>ML TRACKING & REGISTRY LAYER</b>"]
         MLF1["<b>📊 MLflow Server</b><br/>Port 5000<br/><i>Experiment Tracking</i>"]
         MLF2["<b>🔬 Experiments</b><br/>project_education_clustering"]
-        MLF3["<b>🏛️ Model Registry</b><br/><i>Versioned Models</i>"]
+        MLF3["<b>🛍️ Model Registry</b><br/><i>Versioned Models</i>"]
         MLF4["<b>📈 Metrics Store</b><br/>Silhouette • DB Index • Inertia"]
 
         MLF1 --> MLF2
@@ -218,7 +218,7 @@ graph TB
         API1["<b>⚡ FastAPI Server</b><br/>Port 8000<br/><i>High-Performance API</i>"]
         API2["<b>🌐 REST Endpoints</b><br/>/ • /predict • /metrics"]
         API3["<b>✅ Pydantic Validation</b><br/><i>Request/Response Schema</i>"]
-        API4["<b>🔄 Model Loading</b><br/><i>Artifact Management</i>"]
+        API4["<b>📄 Model Loading</b><br/><i>Artifact Management</i>"]
 
         API1 --> API2
         API1 --> API3
@@ -258,7 +258,7 @@ graph TB
     subgraph MONITOR["<b>MONITORING & OBSERVABILITY LAYER</b>"]
         subgraph METRICS["Metrics Collection"]
             PROM1["<b>🔥 Prometheus</b><br/>Port 9090<br/><i>Metrics Database</i>"]
-            PROM2["<b>📮 Pushgateway</b><br/>Port 9091<br/><i>Batch Metrics</i>"]
+            PROM2["<b>🔮 Pushgateway</b><br/>Port 9091<br/><i>Batch Metrics</i>"]
             PROM3["<b>📦 cAdvisor</b><br/><i>Container Metrics</i>"]
             PROM4["<b>🖥️ Node Exporter</b><br/><i>System Metrics</i>"]
         end
@@ -385,16 +385,26 @@ graph TB
     class USER1,ADMIN1,API_CLIENT userStyle
 ```
 
-### Architecture Layers
+### Architecture Layers Overview
 
-| Layer | Components | Purpose |
-|-------|-----------|---------|
-| **Data** | PostgreSQL, DVC, S3 | Data storage, versioning, and retrieval |
-| **Orchestration** | Mage.ai, Docker | Workflow automation and container management |
-| **ML** | scikit-learn, Optuna, MLflow | Training, tuning, tracking, and registry |
-| **Serving** | FastAPI, Streamlit | Model inference and user interface |
-| **Monitoring** | Prometheus, Grafana, Evidently | Metrics, alerting, and drift detection |
-| **DevOps** | GitHub Actions, pre-commit | CI/CD, testing, and code quality |
+Sistem DevMLOps dibangun dengan arsitektur berlapis yang memisahkan concern secara jelas untuk memastikan skalabilitas, maintainability, dan observability. Berikut adalah penjelasan setiap layer:
+
+| Layer | Components | Purpose | Key Technologies |
+|-------|-----------|---------|-----------------|
+| **Development Layer** | Git, Pre-commit Hooks, Environment Config | Local development workflow dengan automated code quality checks | Git, Pre-commit, Ruff, Black, Prettier, dotenv |
+| **Version Control & CI/CD Layer** | GitHub, GitHub Actions, DVC | Source code versioning, automated testing, dan data versioning | GitHub Actions, DVC, pytest, Bandit, Trivy |
+| **Infrastructure Layer** | Docker, Docker Compose | Container orchestration dan network management | Docker, Docker Compose |
+| **Data Storage Layer** | PostgreSQL, Local Filesystem, DVC | Persistent data storage dan versioning | PostgreSQL, DVC, Docker Volumes |
+| **Data Pipeline Layer** | Mage AI | ETL orchestration dan workflow automation | Mage AI, Python |
+| **ML Training Layer** | Scikit-learn, Optuna | Model training dan hyperparameter optimization | Scikit-learn, Optuna, StandardScaler |
+| **ML Tracking & Registry Layer** | MLflow | Experiment tracking dan model registry | MLflow |
+| **Model Explainability Layer** | SHAP | Model interpretation dan feature importance | SHAP (KernelExplainer) |
+| **Data Quality & Drift Layer** | Evidently AI | Data drift detection dan quality monitoring | Evidently AI |
+| **Backend API Layer** | FastAPI | High-performance REST API serving | FastAPI, Pydantic, Uvicorn |
+| **Frontend Dashboard Layer** | Streamlit | Interactive web interface untuk users dan admins | Streamlit, Plotly, Altair, Statsmodels, Pandas |
+| **Monitoring & Observability Layer** | Prometheus, Grafana, Alertmanager | Metrics collection, visualization, dan alerting | Prometheus, Grafana, Alertmanager, cAdvisor, Node Exporter, Pushgateway |
+| **Artifact Storage & Serving Layer** | Nginx | Static file serving untuk visualizations dan reports | Nginx |
+| **External Users Layer** | Web Browsers, API Clients | User interactions dan external integrations | HTTP/REST |
 
 ---
 
@@ -402,41 +412,268 @@ graph TB
 
 ### Core Technologies
 
-| Category | Technology | Version | Purpose |
-|----------|-----------|---------|---------|
-| **Language** | Python | 3.9+ | Primary development language |
-| **Orchestration** | Mage AI | Latest | ETL pipeline and workflow management |
-| **ML Framework** | scikit-learn | 1.5.2 | K-Means clustering implementation |
-| **Experiment Tracking** | MLflow | 2.14.0 | Model versioning and registry |
-| **Data Versioning** | DVC | Latest | Dataset version control |
-| **Backend API** | FastAPI | Latest | High-performance REST API |
-| **Frontend** | Streamlit | Latest | Interactive web dashboard |
-| **Database** | PostgreSQL | 15 | Relational data storage |
-| **Container** | Docker | Latest | Application containerization |
-| **Orchestration** | Docker Compose | Latest | Multi-container management |
-| **Monitoring** | Prometheus | Latest | Metrics collection |
-| **Visualization** | Grafana | Latest | Monitoring dashboards |
-| **Drift Detection** | Evidently AI | 0.6.0 | Data and model drift analysis |
-| **Optimization** | Optuna | Latest | Hyperparameter tuning |
-| **Explainability** | SHAP | Latest | Model interpretability |
+Berikut adalah stack teknologi lengkap yang digunakan dalam proyek DevMLOps, dikategorikan berdasarkan fungsinya:
 
-### Infrastructure Stack
+#### 1. **Orchestration & Pipeline Management**
 
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **Mage AI** | Latest | ETL pipeline orchestration, workflow automation, dan scheduled tasks | [docs.mage.ai](https://docs.mage.ai) |
+
+**Why Mage AI?**
+- Visual pipeline builder dengan Python-first approach
+- Built-in data quality checks dan observability
+- Native integration dengan PostgreSQL, MLflow, dan cloud storage
+- Real-time monitoring dan debugging capabilities
+- Support untuk batch dan streaming pipelines
+
+#### 2. **Machine Learning & Data Science**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **Scikit-learn** | 1.5.2 | K-Means clustering implementation, StandardScaler, metrics | [scikit-learn.org](https://scikit-learn.org) |
+| **Optuna** | Latest | Hyperparameter optimization dengan Bayesian approach | [optuna.org](https://optuna.org) |
+| **SHAP** | Latest | Model explainability dan feature importance analysis | [shap.readthedocs.io](https://shap.readthedocs.io) |
+
+**Machine Learning Workflow:**
+```
+Raw Data → Scikit-learn (Preprocessing) → Optuna (HPO) → Scikit-learn (Training) → SHAP (Explainability)
+```
+
+#### 3. **Experiment Tracking & Model Management**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **MLflow** | 2.14.0 | Experiment tracking, model registry, dan artifact storage | [mlflow.org](https://mlflow.org) |
+
+**MLflow Capabilities:**
+- **Tracking**: Log parameters, metrics, dan visualizations setiap training run
+- **Model Registry**: Versioning model dengan tagging (Staging, Production, Archived)
+- **Artifact Store**: Simpan model binaries (.pkl), scalers, dan metadata (.json)
+- **UI Dashboard**: Web interface untuk compare experiments dan manage models
+
+#### 4. **Data Version Control**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **DVC** | Latest | Dataset versioning, remote storage sync, dan reproducibility | [dvc.org](https://dvc.org) |
+
+**DVC Workflow:**
+```
+dvc add data/raw/dataset.csv → dvc push → Git commit .dvc files → Reproducible data snapshots
+```
+
+#### 5. **Data Quality & Drift Detection**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **Evidently AI** | 0.6.0 | Data drift detection, data quality checks, dan model monitoring | [evidentlyai.com](https://evidentlyai.com) |
+
+**Evidently Capabilities:**
+- **Data Drift**: Kolmogorov-Smirnov test per feature
+- **Data Quality**: Missing values, duplicates, correlations
+- **Model Performance**: Classification/regression metrics monitoring
+- **Reports**: Interactive HTML reports dan JSON metrics
+
+#### 6. **Backend API Framework**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **FastAPI** | Latest | High-performance REST API dengan async support | [fastapi.tiangolo.com](https://fastapi.tiangolo.com) |
+| **Pydantic** | Latest (bundled) | Data validation dan serialization | [docs.pydantic.dev](https://docs.pydantic.dev) |
+| **Uvicorn** | Latest | ASGI server untuk FastAPI | [uvicorn.org](https://uvicorn.org) |
+
+**FastAPI Features:**
+- Automatic OpenAPI/Swagger documentation
+- Pydantic schemas untuk type safety
+- Prometheus metrics integration
+- Sub-100ms inference latency
+
+#### 7. **Frontend Dashboard**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **Streamlit** | Latest | Interactive web dashboards tanpa JavaScript | [streamlit.io](https://streamlit.io) |
+| **Plotly** | Latest | Interactive maps dan charts | [plotly.com/python](https://plotly.com/python) |
+| **Altair** | Latest | Declarative statistical visualizations | [altair-viz.github.io](https://altair-viz.github.io) |
+| **Statsmodels** | Latest | Statistical analysis dan modeling | [statsmodels.org](https://statsmodels.org) |
+| **Pandas** | Latest | Data manipulation dan analysis | [pandas.pydata.org](https://pandas.pydata.org) |
+
+**Dashboard Architecture:**
+```
+Streamlit App → API Calls (FastAPI) → Model Inference → Plotly/Altair Visualizations
+```
+
+#### 8. **Database**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **PostgreSQL** | 15 | Relational database untuk education features | [postgresql.org](https://postgresql.org) |
+
+**Database Schema:**
+- **Table**: `education_features`
+- **Columns**: 20 features + `provinsi` (primary key)
+- **Persistence**: Docker volume (`postgres_data`)
+
+#### 9. **Monitoring & Observability**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **Prometheus** | Latest | Metrics collection dan time-series database | [prometheus.io](https://prometheus.io) |
+| **Grafana** | Latest | Visualization dashboards dan alerting | [grafana.com](https://grafana.com) |
+| **Alertmanager** | Latest | Alert routing dan notification management | [prometheus.io/docs/alerting](https://prometheus.io/docs/alerting/latest/alertmanager) |
+| **cAdvisor** | Latest | Container resource usage metrics | [github.com/google/cadvisor](https://github.com/google/cadvisor) |
+| **Node Exporter** | Latest | Host system metrics (CPU, memory, disk) | [github.com/prometheus/node_exporter](https://github.com/prometheus/node_exporter) |
+| **Pushgateway** | Latest | Batch job metrics collection | [prometheus.io/docs/practices/pushing](https://prometheus.io/docs/practices/pushing) |
+
+**Monitoring Stack Flow:**
+```
+API/Services → Prometheus (scrape) → Grafana (visualize) → Alertmanager (notify)
+               ↑
+         cAdvisor + Node Exporter (system metrics)
+               ↑
+         Pushgateway (batch metrics dari Mage)
+```
+
+#### 10. **CI/CD & DevOps Tools**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **GitHub Actions** | N/A | CI/CD automation workflows | [docs.github.com/actions](https://docs.github.com/actions) |
+| **Pre-commit** | Latest | Git hooks untuk automated checks sebelum commit | [pre-commit.com](https://pre-commit.com) |
+| **Ruff** | Latest | Extremely fast Python linter (pengganti Flake8 + isort) | [docs.astral.sh/ruff](https://docs.astral.sh/ruff) |
+| **Black** | Latest | Opinionated Python code formatter | [black.readthedocs.io](https://black.readthedocs.io) |
+| **Prettier** | Latest | Code formatter untuk YAML, JSON, Markdown | [prettier.io](https://prettier.io) |
+| **pytest** | Latest | Python testing framework | [pytest.org](https://pytest.org) |
+| **Bandit** | Latest | Security linter untuk Python code | [bandit.readthedocs.io](https://bandit.readthedocs.io) |
+| **Trivy** | Latest | Container vulnerability scanner | [aquasecurity.github.io/trivy](https://aquasecurity.github.io/trivy) |
+| **dotenv** | Latest | Environment variable management | [pypi.org/project/python-dotenv](https://pypi.org/project/python-dotenv) |
+
+**CI/CD Pipeline Stages:**
 ```mermaid
 graph LR
-    A[Docker Desktop] --> B[Docker Compose]
-    B --> C[Backend Container]
-    B --> D[Frontend Container]
-    B --> E[Mage Container]
-    B --> F[MLflow Container]
-    B --> G[PostgreSQL Container]
-    B --> H[Prometheus Container]
-    B --> I[Grafana Container]
+    A[Git Push] --> B[Pre-commit Hooks]
+    B --> C[GitHub Actions]
+    C --> D[Ruff + Black]
+    D --> E[Bandit Security]
+    E --> F[pytest Tests]
+    F --> G[Docker Build]
+    G --> H[Trivy Scan]
+    H --> I{All Pass?}
+    I -->|Yes| J[Deploy]
+    I -->|No| K[Fail & Notify]
+```
 
-    style B fill:#2496ed
-    style C fill:#009688
-    style D fill:#ff4b4b
-    style E fill:#9333ea
+#### 11. **Containerization & Infrastructure**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **Docker** | Latest | Application containerization | [docker.com](https://docker.com) |
+| **Docker Compose** | Latest | Multi-container orchestration | [docs.docker.com/compose](https://docs.docker.com/compose) |
+| **Nginx** | Latest | Static file server untuk artifacts | [nginx.org](https://nginx.org) |
+
+**Container Architecture:**
+```
+docker-compose.yml
+├── backend (FastAPI)
+├── frontend (Streamlit)
+├── mage (Mage AI)
+├── mlflow (MLflow Server)
+├── postgres (PostgreSQL)
+├── prometheus (Prometheus)
+├── grafana (Grafana)
+├── alertmanager (Alertmanager)
+├── pushgateway (Pushgateway)
+├── cadvisor (cAdvisor)
+├── node-exporter (Node Exporter)
+└── nginx (Artifact Server)
+```
+
+#### 12. **Version Control**
+
+| Technology | Version | Purpose | Documentation |
+|-----------|---------|---------|---------------|
+| **Git** | 2.30+ | Distributed version control | [git-scm.com](https://git-scm.com) |
+| **GitHub** | N/A | Remote repository hosting | [github.com](https://github.com) |
+
+### Technology Stack Summary
+
+**Programming Languages:**
+- Python 3.9+ (primary)
+- SQL (PostgreSQL queries)
+- YAML (configuration files)
+- Markdown (documentation)
+
+**Infrastructure as Code:**
+- Docker Compose YAML
+- Prometheus alert rules YAML
+- Mage AI pipeline YAML
+
+**Total Tools Count: 20**
+
+1. Mage AI ✅
+2. MLflow ✅
+3. Evidently AI ✅
+4. Prometheus ✅
+5. Grafana ✅
+6. Alertmanager ✅
+7. GitHub Actions ✅
+8. Optuna ✅
+9. SHAP ✅
+10. Ruff ✅
+11. Black ✅
+12. Prettier ✅
+13. pytest ✅
+14. dotenv ✅
+15. Bandit ✅
+16. Trivy ✅
+17. Streamlit ✅
+18. FastAPI ✅
+19. DVC ✅
+20. Git & GitHub ✅
+21. Pre-commit ✅
+22. PostgreSQL ✅
+23. cAdvisor ✅
+24. Node Exporter ✅
+25. Pushgateway ✅
+26. Plotly ✅
+27. Altair ✅
+28. Statsmodels ✅
+29. Pandas ✅
+30. Docker ✅
+31. Docker Compose ✅
+32. Nginx ✅
+33. Scikit-learn ✅
+
+### Infrastructure Stack Visualization
+
+```mermaid
+graph TD
+    A[Docker Compose Orchestration] --> B[Application Services]
+    A --> C[Monitoring Services]
+    A --> D[Infrastructure Services]
+
+    B --> B1[Backend: FastAPI]
+    B --> B2[Frontend: Streamlit]
+    B --> B3[Pipeline: Mage AI]
+    B --> B4[Tracking: MLflow]
+
+    C --> C1[Metrics: Prometheus]
+    C --> C2[Visualization: Grafana]
+    C --> C3[Alerting: Alertmanager]
+    C --> C4[Container Metrics: cAdvisor]
+    C --> C5[System Metrics: Node Exporter]
+    C --> C6[Batch Metrics: Pushgateway]
+
+    D --> D1[Database: PostgreSQL]
+    D --> D2[File Server: Nginx]
+    D --> D3[Network: mlops-net]
+    D --> D4[Volumes: Data Persistence]
+
+    style A fill:#2496ed
+    style B fill:#009688
+    style C fill:#ef4444
+    style D fill:#10b981
 ```
 
 ---
