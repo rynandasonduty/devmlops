@@ -90,59 +90,299 @@ graph LR
 
 ```mermaid
 graph TB
-    subgraph "Data Layer"
-        A[(PostgreSQL<br/>Source Data)]
-        B[DVC<br/>Data Versioning]
-        C[AWS S3<br/>Remote Storage]
+    subgraph DEV["<b>DEVELOPMENT LAYER</b>"]
+        DEV1["<b>👨‍💻 Developer</b><br/><i>Local Development</i>"]
+        DEV2["<b>📦 Git Local Repository</b><br/><i>Version Control</i>"]
+        DEV3["<b>🔍 Pre-commit Hooks</b><br/>Ruff • Black • Prettier"]
+        DEV4["<b>⚙️ Environment Config</b><br/>dotenv • .env files"]
+
+        DEV1 -->|code & commit| DEV2
+        DEV2 -->|trigger| DEV3
+        DEV3 -->|validate| DEV2
     end
 
-    subgraph "Orchestration Layer"
-        D[Mage.ai<br/>Pipeline Engine]
-        E[Docker Compose<br/>Container Orchestrator]
+    subgraph CICD["<b>VERSION CONTROL & CI/CD LAYER</b>"]
+        VCS1["<b>🌐 GitHub Repository</b><br/><i>Source Code</i>"]
+        VCS2["<b>⚡ GitHub Actions</b><br/><i>Automation Pipeline</i>"]
+        VCS3["<b>📊 DVC</b><br/><i>Data Version Control</i>"]
+
+        DEV2 -->|push| VCS1
+        VCS1 -->|trigger| VCS2
+
+        subgraph CI["CI Pipeline Stages"]
+            CI1["<b>✨ Code Quality</b><br/>Ruff + Black"]
+            CI2["<b>🛡️ Security Scan</b><br/>Bandit"]
+            CI3["<b>🧪 Unit Tests</b><br/>pytest"]
+            CI4["<b>🔒 Container Scan</b><br/>Trivy"]
+
+            VCS2 --> CI1 --> CI2 --> CI3 --> CI4
+        end
     end
 
-    subgraph "ML Layer"
-        F[Data Cleaning<br/>IQR Outlier Removal]
-        G[Feature Engineering<br/>StandardScaler]
-        H[Hyperparameter Tuning<br/>Optuna]
-        I[K-Means Training<br/>scikit-learn]
-        J[Model Registry<br/>MLflow]
+    subgraph INFRA["<b>INFRASTRUCTURE LAYER</b>"]
+        DOCKER["<b>🐳 Docker Engine</b>"]
+        COMPOSE["<b>🎼 Docker Compose</b><br/><i>Multi-Container Orchestrator</i>"]
+        NETWORK["<b>🌐 Docker Network</b><br/>mlops-net"]
+
+        DOCKER --> COMPOSE --> NETWORK
     end
 
-    subgraph "Serving Layer"
-        K[FastAPI<br/>REST API]
-        L[Streamlit<br/>Web Dashboard]
+    subgraph STORAGE["<b>DATA STORAGE LAYER</b>"]
+        DB1["<b>🗄️ PostgreSQL</b><br/>Port 5432<br/><i>education_features table</i>"]
+        DB2["<b>📁 Local File System</b><br/><i>CSV Data Storage</i>"]
+        DB3["<b>💾 DVC Storage</b><br/><i>Versioned Datasets</i>"]
+        VOL1["<b>📦 Docker Volumes</b><br/>postgres_data<br/>grafana_data<br/>prometheus_data"]
+
+        DB2 -.->|version control| DB3
+        DB1 -.->|persist| VOL1
     end
 
-    subgraph "Monitoring Layer"
-        M[Prometheus<br/>Metrics Collector]
-        N[Grafana<br/>Visualization]
-        O[Evidently AI<br/>Drift Detection]
-        P[Alertmanager<br/>Notifications]
+    subgraph PIPELINE["<b>DATA PIPELINE LAYER - MAGE AI</b>"]
+        MAGE["<b>🎨 Mage AI Server</b><br/>Port 6789<br/><i>Pipeline Orchestrator</i>"]
+
+        subgraph ETL["ETL Pipelines"]
+            ETL1["<b>📥 Data Seeding</b><br/>CSV → PostgreSQL"]
+            ETL2["<b>🔄 Training Pipeline</b><br/>Load → Transform → Train"]
+        end
+
+        subgraph BLOCKS["Pipeline Blocks"]
+            BLOCK1["<b>📖 Data Loaders</b><br/>load_education_features"]
+            BLOCK2["<b>🔧 Transformers</b><br/>clean_outliers_iqr<br/>transform_standardize"]
+            BLOCK3["<b>💾 Data Exporters</b><br/>train_kmeans_clustering"]
+            BLOCK4["<b>🎨 Custom Blocks</b><br/>SHAP • Visualizations"]
+        end
+
+        MAGE --> ETL1
+        MAGE --> ETL2
+        ETL2 --> BLOCK1 --> BLOCK2 --> BLOCK3 --> BLOCK4
     end
 
-    subgraph "DevOps Layer"
-        Q[GitHub Actions<br/>CI/CD]
-        R[Pre-commit Hooks<br/>Code Quality]
+    subgraph ML["<b>MACHINE LEARNING TRAINING LAYER</b>"]
+        subgraph OPT["Hyperparameter Optimization"]
+            OPT1["<b>🎯 Optuna Study</b><br/>k = 2 to 6 clusters<br/>15 trials"]
+            OPT2["<b>📊 Objective Function</b><br/>Silhouette - 0.3×DB Index"]
+        end
+
+        subgraph MODEL["Model Training"]
+            ML1["<b>🤖 K-Means Clustering</b><br/>Scikit-learn<br/><i>Unsupervised Learning</i>"]
+            ML2["<b>📏 StandardScaler</b><br/><i>Feature Normalization</i>"]
+        end
+
+        subgraph ARTIFACTS["Model Artifacts"]
+            ART1["<b>💾 kmeans_model.pkl</b>"]
+            ART2["<b>📐 standard_scaler.pkl</b>"]
+            ART3["<b>📄 cluster_metadata.json</b>"]
+        end
+
+        BLOCK3 --> OPT1 --> OPT2 --> ML1
+        BLOCK2 --> ML2
+        ML1 --> ART1
+        ML2 --> ART2
+        ML1 --> ART3
     end
 
-    A --> D
-    D --> F --> G --> H --> I
-    I --> J
-    B --> C
-    J --> K
-    K --> L
-    K --> M
-    M --> N
-    O --> M
-    M --> P
-    Q --> E
-    R --> Q
+    subgraph TRACK["<b>ML TRACKING & REGISTRY LAYER</b>"]
+        MLF1["<b>📊 MLflow Server</b><br/>Port 5000<br/><i>Experiment Tracking</i>"]
+        MLF2["<b>🔬 Experiments</b><br/>project_education_clustering"]
+        MLF3["<b>🏛️ Model Registry</b><br/><i>Versioned Models</i>"]
+        MLF4["<b>📈 Metrics Store</b><br/>Silhouette • DB Index • Inertia"]
 
-    style A fill:#3b82f6
-    style J fill:#10b981
-    style K fill:#ef4444
-    style M fill:#f59e0b
+        MLF1 --> MLF2
+        MLF1 --> MLF3
+        MLF1 --> MLF4
+
+        BLOCK3 -->|log experiments| MLF1
+        ART1 -->|register| MLF3
+    end
+
+    subgraph EXPLAIN["<b>MODEL EXPLAINABILITY LAYER</b>"]
+        SHAP1["<b>🧠 SHAP Analysis</b><br/><i>Feature Importance</i>"]
+        SHAP2["<b>🔍 KernelExplainer</b><br/><i>Model Interpretation</i>"]
+        SHAP3["<b>📊 Summary Plots</b><br/><i>PNG Visualizations</i>"]
+
+        BLOCK4 --> SHAP1 --> SHAP2 --> SHAP3
+    end
+
+    subgraph DRIFT["<b>DATA QUALITY & DRIFT LAYER</b>"]
+        EVID1["<b>🎯 Evidently AI</b><br/><i>Drift Detection Engine</i>"]
+        EVID2["<b>📉 Statistical Tests</b><br/>Kolmogorov-Smirnov"]
+        EVID3["<b>📄 HTML Reports</b><br/>data_drift_report.html"]
+        EVID4["<b>📊 Drift Metrics</b><br/>drift_score<br/>drift_status"]
+
+        BLOCK2 --> EVID1 --> EVID2
+        EVID2 --> EVID3
+        EVID2 --> EVID4
+    end
+
+    subgraph API["<b>BACKEND API LAYER</b>"]
+        API1["<b>⚡ FastAPI Server</b><br/>Port 8000<br/><i>High-Performance API</i>"]
+        API2["<b>🌐 REST Endpoints</b><br/>/ • /predict • /metrics"]
+        API3["<b>✅ Pydantic Validation</b><br/><i>Request/Response Schema</i>"]
+        API4["<b>🔄 Model Loading</b><br/><i>Artifact Management</i>"]
+
+        API1 --> API2
+        API1 --> API3
+        API1 --> API4
+
+        ART1 -.->|load| API4
+        ART2 -.->|load| API4
+        ART3 -.->|load| API4
+    end
+
+    subgraph FRONT["<b>FRONTEND DASHBOARD LAYER</b>"]
+        STREAM["<b>🎨 Streamlit Server</b><br/>Port 8501<br/><i>Interactive Web Interface</i>"]
+
+        subgraph UI["User Interfaces"]
+            UI1["<b>👥 User Dashboard</b><br/>Cluster Visualization<br/>Interactive Maps"]
+            UI2["<b>🔧 Admin Dashboard</b><br/>Pipeline Control<br/>Data Management"]
+            UI3["<b>📊 Monitoring</b><br/>Drift Reports<br/>System Health"]
+        end
+
+        subgraph VIZ["Visualization Libraries"]
+            VIZ1["<b>📈 Plotly</b><br/><i>Interactive Maps</i>"]
+            VIZ2["<b>📊 Altair</b><br/><i>Statistical Charts</i>"]
+            VIZ3["<b>📉 Statsmodels</b><br/><i>Statistical Analysis</i>"]
+            VIZ4["<b>🐼 Pandas</b><br/><i>Data Processing</i>"]
+        end
+
+        STREAM --> UI1
+        STREAM --> UI2
+        STREAM --> UI3
+
+        UI1 --> VIZ1
+        UI1 --> VIZ2
+        UI2 --> VIZ3
+        UI3 --> VIZ4
+    end
+
+    subgraph MONITOR["<b>MONITORING & OBSERVABILITY LAYER</b>"]
+        subgraph METRICS["Metrics Collection"]
+            PROM1["<b>🔥 Prometheus</b><br/>Port 9090<br/><i>Metrics Database</i>"]
+            PROM2["<b>📮 Pushgateway</b><br/>Port 9091<br/><i>Batch Metrics</i>"]
+            PROM3["<b>📦 cAdvisor</b><br/><i>Container Metrics</i>"]
+            PROM4["<b>🖥️ Node Exporter</b><br/><i>System Metrics</i>"]
+        end
+
+        subgraph SOURCE["Metrics Sources"]
+            MET1["<b>⚡ API Metrics</b><br/>http_requests_total<br/>latency • errors"]
+            MET2["<b>📊 Drift Metrics</b><br/>evidently_data_drift_*"]
+            MET3["<b>📦 Container Stats</b><br/>CPU • Memory • Disk"]
+            MET4["<b>🖥️ Host Stats</b><br/>System Resources"]
+        end
+
+        subgraph VIS["Visualization"]
+            GRAF1["<b>📊 Grafana</b><br/>Port 3000<br/><i>Monitoring Dashboards</i>"]
+            GRAF2["<b>📈 MLOps Overview</b><br/>API Performance"]
+            GRAF3["<b>🎯 Drift Monitoring</b><br/>Data Quality"]
+            GRAF4["<b>🏥 Infrastructure</b><br/>Resource Usage"]
+        end
+
+        subgraph ALERT["Alerting System"]
+            ALERT1["<b>🚨 Alertmanager</b><br/>Port 9093<br/><i>Alert Routing</i>"]
+            ALERT2["<b>⚠️ Alert Rules</b><br/>prometheus/alert_rules.yml"]
+            ALERT3["<b>📧 Notifications</b><br/>Email • Webhook"]
+        end
+
+        API2 -->|expose| MET1
+        EVID4 -->|push| PROM2
+        PROM3 --> MET3
+        PROM4 --> MET4
+
+        MET1 -->|scrape| PROM1
+        PROM2 -->|scrape| PROM1
+        MET3 -->|scrape| PROM1
+        MET4 -->|scrape| PROM1
+
+        PROM1 --> GRAF1
+        GRAF1 --> GRAF2
+        GRAF1 --> GRAF3
+        GRAF1 --> GRAF4
+
+        PROM1 --> ALERT1
+        ALERT2 --> ALERT1
+        ALERT1 --> ALERT3
+    end
+
+    subgraph SERVE["<b>ARTIFACT STORAGE & SERVING LAYER</b>"]
+        NGINX["<b>🌐 Nginx Server</b><br/>Port 8080<br/><i>Static File Server</i>"]
+        STORE1["<b>📁 Artifacts Directory</b><br/>/artifacts/"]
+        STORE2["<b>📊 Visualizations</b><br/>elbow • PCA • silhouette"]
+        STORE3["<b>🧠 SHAP Plots</b><br/>shap_summary.png"]
+        STORE4["<b>📄 Drift Reports</b><br/>data_drift_report.html"]
+
+        NGINX --> STORE1
+        STORE1 --> STORE2
+        STORE1 --> STORE3
+        STORE1 --> STORE4
+
+        BLOCK4 --> STORE2
+        SHAP3 --> STORE3
+        EVID3 --> STORE4
+    end
+
+    subgraph USERS["<b>EXTERNAL USERS & INTERACTIONS</b>"]
+        USER1["<b>👤 End User</b><br/><i>Web Browser</i>"]
+        ADMIN1["<b>👨‍💼 Admin User</b><br/><i>Pipeline Management</i>"]
+        API_CLIENT["<b>🤖 API Client</b><br/><i>External Systems</i>"]
+
+        USER1 -->|access dashboard| STREAM
+        ADMIN1 -->|manage system| STREAM
+        API_CLIENT -->|POST /predict| API1
+
+        STREAM -->|API calls| API1
+        UI2 -->|trigger pipeline| MAGE
+        UI3 -->|view reports| NGINX
+    end
+
+    %% Data Flow Connections
+    DB2 -->|upload CSV| ETL1
+    ETL1 -->|insert data| DB1
+    DB1 -->|query data| BLOCK1
+
+    %% Monitoring Connections
+    COMPOSE -.->|container metrics| PROM3
+    DOCKER -.->|system metrics| PROM4
+
+    %% Network Connections
+    NETWORK -.->|connect| MAGE
+    NETWORK -.->|connect| MLF1
+    NETWORK -.->|connect| API1
+    NETWORK -.->|connect| STREAM
+    NETWORK -.->|connect| DB1
+    NETWORK -.->|connect| PROM1
+    NETWORK -.->|connect| GRAF1
+    NETWORK -.->|connect| NGINX
+
+    %% Enhanced Styling dengan warna yang lebih jelas dan kontras tinggi
+    classDef devStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef cicdStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef storageStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef pipelineStyle fill:#E1F5FE,stroke:#0277BD,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef mlStyle fill:#FFE0B2,stroke:#E65100,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef trackStyle fill:#F8BBD0,stroke:#C2185B,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef explainStyle fill:#D1C4E9,stroke:#512DA8,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef driftStyle fill:#FFCCBC,stroke:#D84315,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef apiStyle fill:#B2DFDB,stroke:#00695C,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef frontStyle fill:#F0F4C3,stroke:#9E9D24,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef monitorStyle fill:#CFD8DC,stroke:#37474F,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef serveStyle fill:#C5E1A5,stroke:#558B2F,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+    classDef userStyle fill:#FFCDD2,stroke:#C62828,stroke-width:3px,color:#000000,font-weight:bold,font-size:14px
+
+    class DEV1,DEV2,DEV3,DEV4 devStyle
+    class VCS1,VCS2,VCS3,CI1,CI2,CI3,CI4 cicdStyle
+    class DOCKER,COMPOSE,NETWORK infraStyle
+    class DB1,DB2,DB3,VOL1 storageStyle
+    class MAGE,ETL1,ETL2,BLOCK1,BLOCK2,BLOCK3,BLOCK4 pipelineStyle
+    class OPT1,OPT2,ML1,ML2,ART1,ART2,ART3 mlStyle
+    class MLF1,MLF2,MLF3,MLF4 trackStyle
+    class SHAP1,SHAP2,SHAP3 explainStyle
+    class EVID1,EVID2,EVID3,EVID4 driftStyle
+    class API1,API2,API3,API4 apiStyle
+    class STREAM,UI1,UI2,UI3,VIZ1,VIZ2,VIZ3,VIZ4 frontStyle
+    class PROM1,PROM2,PROM3,PROM4,MET1,MET2,MET3,MET4,GRAF1,GRAF2,GRAF3,GRAF4,ALERT1,ALERT2,ALERT3 monitorStyle
+    class NGINX,STORE1,STORE2,STORE3,STORE4 serveStyle
+    class USER1,ADMIN1,API_CLIENT userStyle
 ```
 
 ### Architecture Layers
